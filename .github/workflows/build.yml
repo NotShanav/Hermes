@@ -35,7 +35,7 @@ jobs:
           New-Item -ItemType Directory -Force -Path $t | Out-Null
           .\target\x86_64-pc-windows-msvc\release\hermes-keytool.exe fscheck --dir $t --local-dir $env:RUNNER_TEMP --events 5000
 
-      - name: End-to-end smoke test (init, record 8 s, check, search, export) (informational: needs an interactive desktop)
+      - name: "End-to-end smoke test (init, record 8 s, check, search, export) (informational: needs an interactive desktop)"
         continue-on-error: true
         shell: pwsh
         run: .\scripts\smoke.ps1 -Exe .\target\x86_64-pc-windows-msvc\release\hermes.exe -Seconds 8 -NonInteractive
