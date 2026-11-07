@@ -1,0 +1,14 @@
+/target
+# never commit key material, archives or exports
+*.key
+*.sharea
+*.signkey
+*.db
+*.db-wal
+*.db-shm
+*.corrupt-*
+hermes-export*.csv
+hermes-export*.json
+hermes-test-report-*.txt
+hermes-measure-*.csv
+dist/

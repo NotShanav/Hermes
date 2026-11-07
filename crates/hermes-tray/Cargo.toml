@@ -1,0 +1,40 @@
+[package]
+name = "hermes-tray"
+description = "Hermes system-tray collector: visible recording indicator, pause/resume, status. Controls hermes-collector; contains no tracking or storage logic."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lib]
+name = "hermes_tray"
+path = "src/lib.rs"
+
+[[bin]]
+name = "hermes-tray"
+path = "src/main.rs"
+
+[dependencies]
+hermes-collector = { path = "../hermes-collector" }
+hermes-platform = { path = "../hermes-platform" }
+hermes-tracker = { path = "../hermes-tracker" }
+serde.workspace = true
+serde_json.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+hermes-crypto = { path = "../hermes-crypto" }
+hermes-db = { path = "../hermes-db" }
+hermes-dump = { path = "../hermes-dump" }
+
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.62", features = [
+    "Win32_Foundation",
+    "Win32_Graphics_Gdi",
+    "Win32_System_LibraryLoader",
+    "Win32_System_Registry",
+    "Win32_UI_Input_KeyboardAndMouse",
+    "Win32_UI_Shell",
+    "Win32_UI_WindowsAndMessaging",
+] }

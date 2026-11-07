@@ -1,0 +1,26 @@
+[package]
+name = "hermes-dump"
+description = "Developer/verification tool: decrypts and prints the archive (needs BOTH key shares). Not the Hermes Viewer."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lib]
+name = "hermes_dump"
+path = "src/lib.rs"
+
+[[bin]]
+name = "hermes-dump"
+path = "src/main.rs"
+
+[dependencies]
+hermes-crypto = { path = "../hermes-crypto" }
+hermes-db = { path = "../hermes-db" }
+hermes-platform = { path = "../hermes-platform" }
+hermes-tracker = { path = "../hermes-tracker" }
+
+[dev-dependencies]
+hermes-crypto = { path = "../hermes-crypto", features = ["test-support"] }
+tempfile.workspace = true

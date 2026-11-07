@@ -1,0 +1,60 @@
+name: Build Hermes (Windows)
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    env:
+      CARGO_TERM_COLOR: always
+    steps:
+      - uses: actions/checkout@v4
+
+      # windows-latest already ships the MSVC build tools (needed for the bundled SQLite C code).
+      - name: Install stable Rust (MSVC target)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Build the whole workspace (release)
+        run: cargo build --release --workspace --locked --target x86_64-pc-windows-msvc
+
+      - name: Run the test-suite
+        run: cargo test --workspace --locked --target x86_64-pc-windows-msvc
+
+      # Real Windows checks of the pieces that only exist on Windows: DPAPI, NTFS, the full command flow.
+      - name: Filesystem + DPAPI check on this Windows runner (informational)
+        continue-on-error: true
+        run: |
+          $t = "$env:RUNNER_TEMP\hermes-fscheck"
+          New-Item -ItemType Directory -Force -Path $t | Out-Null
+          .\target\x86_64-pc-windows-msvc\release\hermes-keytool.exe fscheck --dir $t --local-dir $env:RUNNER_TEMP --events 5000
+
+      - name: End-to-end smoke test (init, record 8 s, check, search, export) (informational: needs an interactive desktop)
+        continue-on-error: true
+        shell: pwsh
+        run: .\scripts\smoke.ps1 -Exe .\target\x86_64-pc-windows-msvc\release\hermes.exe -Seconds 8 -NonInteractive
+
+      - name: Package
+        shell: pwsh
+        run: |
+          $out = "hermes-beta-0.1-windows-x64"
+          New-Item -ItemType Directory -Force -Path $out | Out-Null
+          $rel = "target\x86_64-pc-windows-msvc\release"
+          foreach ($e in "hermes","hermes-tray","hermes-collector","hermes-keytool","hermes-dump") { Copy-Item "$rel\$e.exe" $out }
+          Copy-Item README.md, BUILD.md $out
+          Copy-Item docs -Recurse $out\docs
+          Copy-Item scripts -Recurse $out\scripts
+          Compress-Archive -Path "$out\*" -DestinationPath "$out.zip" -Force
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: hermes-beta-0.1-windows-x64
+          path: hermes-beta-0.1-windows-x64.zip
+          if-no-files-found: error

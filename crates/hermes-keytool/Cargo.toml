@@ -1,0 +1,23 @@
+[package]
+name = "hermes-keytool"
+description = "Command-line key management: init, rotate, verify, backup, restore"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "hermes-keytool"
+path = "src/main.rs"
+
+[dependencies]
+hermes-tracker = { path = "../hermes-tracker" }
+hermes-crypto = { path = "../hermes-crypto" }
+hermes-db = { path = "../hermes-db" }
+hermes-platform = { path = "../hermes-platform" }
+rpassword.workspace = true
+
+[dev-dependencies]
+hermes-crypto = { path = "../hermes-crypto", features = ["test-support"] }
+tempfile.workspace = true

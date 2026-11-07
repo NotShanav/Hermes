@@ -1,0 +1,20 @@
+[package]
+name = "hermes-viewer"
+description = "Hermes history viewer core: unlock (both shares), decrypt into memory, filter, search, summarise, export"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+hermes-crypto = { path = "../hermes-crypto" }
+hermes-db = { path = "../hermes-db" }
+hermes-tracker = { path = "../hermes-tracker" }
+serde.workspace = true
+serde_json.workspace = true
+
+[dev-dependencies]
+hermes-crypto = { path = "../hermes-crypto", features = ["test-support"] }
+tempfile.workspace = true
+rusqlite.workspace = true

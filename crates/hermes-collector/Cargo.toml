@@ -1,0 +1,30 @@
+[package]
+name = "hermes-collector"
+description = "Hermes Collector core (storage glue, status) + console binary; the tray UI lives in hermes-tray"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lib]
+name = "hermes_collector"
+path = "src/lib.rs"
+
+[[bin]]
+name = "hermes-collector"
+path = "src/main.rs"
+
+[dependencies]
+hermes-crypto = { path = "../hermes-crypto" }
+hermes-db = { path = "../hermes-db" }
+hermes-platform = { path = "../hermes-platform" }
+hermes-tracker = { path = "../hermes-tracker" }
+
+[dev-dependencies]
+hermes-crypto = { path = "../hermes-crypto", features = ["test-support"] }
+tempfile.workspace = true
+rusqlite.workspace = true
+
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.62", features = ["Win32_Foundation", "Win32_System_ProcessStatus", "Win32_System_Threading"] }

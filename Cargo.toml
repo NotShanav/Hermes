@@ -1,0 +1,39 @@
+[workspace]
+resolver = "2"
+members = ["crates/hermes-crypto", "crates/hermes-db", "crates/hermes-platform", "crates/hermes-keytool", "crates/hermes-tracker", "crates/hermes-collector", "crates/hermes-dump", "crates/hermes-tray", "crates/hermes-viewer", "crates/hermes-cli"]
+
+[workspace.package]
+version = "0.1.0-beta.1"
+edition = "2021"
+rust-version = "1.88"
+license = "MIT OR Apache-2.0"
+publish = false
+
+[workspace.dependencies]
+blahaj = "0.7"
+x25519-dalek = { version = "3", default-features = false, features = ["zeroize", "getrandom", "static_secrets"] }
+chacha20poly1305 = { version = "0.11", features = ["zeroize"] }
+hkdf = "0.13"
+sha2 = "0.11"
+argon2 = "0.6"
+zeroize = "1"
+getrandom = "0.4"
+thiserror = "2"
+hpke = { version = "0.15", default-features = false, features = ["x25519", "chacha", "alloc", "getrandom"] }
+ed25519-dalek = { version = "3", features = ["zeroize"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+rusqlite = { version = "0.41", features = ["bundled"] }
+tempfile = "3"
+rpassword = "7"
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
+
+# Optimise dependencies (notably curve25519/SQLite) even in dev/test builds; own code stays debuggable.
+[profile.dev.package."*"]
+opt-level = 3
