@@ -1,0 +1,10 @@
+Hermes beta-0.1, UI build, revision r4 (2026-11-08)
+Contains: Hermes core + desktop app (app/) + CI workflow.
+Compiled by the author on GitHub Actions: NO (never compiled here; check the Actions log).
+
+Changes since r3:
+- Fixed compile error in app/src-tauri/src/commands.rs (integrity_info passed Arc<Session> where &Session was expected).
+- Earlier, still in this build: scrolling/sidebar fix, USB-removal auto-lock, author tag NotShanav,
+  hidden clean-slate reset (press-drag the logo on the lock screen to reveal the keyhole), fixed build.yml line 59.
+
+Naming: hermes-<version>-<ui|source>-r<revision>-<date>.zip. Highest revision = latest.

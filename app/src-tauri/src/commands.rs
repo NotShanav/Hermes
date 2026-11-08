@@ -315,7 +315,8 @@ pub async fn lock_archive(state: State<'_, AppState>) -> Res<()> {
 
 #[tauri::command]
 pub async fn integrity_info(state: State<'_, AppState>) -> Res<IntegrityOut> {
-    Ok(integrity_out(&state.session()?))
+    let session = state.session()?;
+    Ok(integrity_out(&session))
 }
 
 /// Re-reads and re-verifies the whole archive with the same key files (picks up newly recorded events too).
