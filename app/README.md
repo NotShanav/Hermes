@@ -64,3 +64,23 @@ recorder from there. Optional: `--data-dir DIR` like the CLI.
 Written without a compiler in the loop. The first GitHub Actions run is the first real build, so expect to
 fix a few compile errors. `cargo test --manifest-path app/src-tauri/Cargo.toml` covers the segment builder,
 aggregations, time slicing and category rules.
+
+## Clean slate / reset (hidden on purpose)
+
+For the case where a key is lost for good. It is **not visible anywhere on the lock screen**.
+
+**How to open it:** on the lock screen, press and drag the Hermes logo (top left) to the right. It slides about 100 px
+and reveals a keyhole where it was. Click the keyhole. (If left alone for 7 seconds the logo slides back.) It only
+appears when an archive already exists.
+
+**What it does:**
+1. Asks you to tick an acknowledgement and type `RESET`.
+2. Walks you through plugging in a USB drive and choosing it. A new key file `hermes-share-b.key` is written there.
+3. Stops the recorder, moves the old `hermes.db*` and `keys\` to `<data-dir>\reset-<time>\`, runs the normal `init`
+   (new archive, new key set, new signing key), and, if anything fails, puts everything back.
+4. Optional: "also delete the old encrypted files" removes the `reset-...` folder and any renamed old key file.
+5. Finally it starts the recorder and unlocks with the new key.
+
+It never decrypts or reads the old history, and it never overwrites an old key file: an old file on the chosen drive is
+renamed (`hermes-share-b.key.old-<time>`) unless you chose to delete the old data. Old data is unreadable afterwards
+unless you still have its keys. Your app preferences, category rules and recorder settings are kept.

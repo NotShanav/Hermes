@@ -1,12 +1,61 @@
 import { useCallback, useEffect, useState } from "react";
-import { FolderOpen, KeyRound, Pause, Play, Square, Usb } from "lucide-react";
+import { useEffect as useEffectR, useRef, useState as useStateR } from "react";
+import { FolderOpen, KeyRound, LockKeyhole, Pause, Play, Square, Usb } from "lucide-react";
 import { open as pickPath } from "@tauri-apps/plugin-dialog";
 import logo from "../assets/logo.png";
 import { api } from "../api";
 import { useApp } from "../store";
 import { Button, ErrorNote, Pill } from "./ui";
+import ResetWizard from "./ResetWizard";
 import { STATE_LABEL, STATE_TONE, useRecorder } from "../hooks";
 import { ago, fmtNum } from "../util";
+
+const SLIDE_MAX = 108;
+
+/**
+ * The logo, with a hidden feature: drag it to the right and a keyhole is revealed behind it. Pressing the
+ * keyhole opens the clean-slate reset. There is deliberately no visible hint. Documented in app/README.md.
+ */
+function SecretLogo({ onOpen }) {
+  const [x, setX] = useStateR(0);
+  const [drag, setDrag] = useStateR(false);
+  const start = useRef(null);
+
+  const down = (e) => {
+    start.current = { px: e.clientX, x0: x };
+    setDrag(true);
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+  const move = (e) => {
+    if (!start.current) return;
+    setX(Math.max(0, Math.min(SLIDE_MAX, start.current.x0 + e.clientX - start.current.px)));
+  };
+  const up = () => {
+    if (!start.current) return;
+    start.current = null;
+    setDrag(false);
+    setX((v) => (v > SLIDE_MAX * 0.5 ? SLIDE_MAX : 0));
+  };
+  // Slide back by itself if left open.
+  useEffectR(() => {
+    if (x < SLIDE_MAX || drag) return;
+    const t = setTimeout(() => setX(0), 7000);
+    return () => clearTimeout(t);
+  }, [x, drag]);
+
+  const reveal = Math.min(1, x / (SLIDE_MAX * 0.6));
+  const ready = x >= SLIDE_MAX * 0.9;
+  return (
+    <div className="logo-slide">
+      <button className="keyhole" style={{ opacity: reveal, pointerEvents: ready ? "auto" : "none", transform: `scale(${0.8 + 0.2 * reveal})` }} onClick={onOpen} tabIndex={-1} aria-hidden={!ready}>
+        <LockKeyhole size={34} strokeWidth={1.6} />
+      </button>
+      <img className="logo-img" src={logo} alt="Hermes" width="96" height="96" draggable={false}
+        style={{ transform: `translateX(${x}px)`, transition: drag ? "none" : "transform 0.28s cubic-bezier(0.2, 0.9, 0.3, 1)" }}
+        onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} />
+    </div>
+  );
+}
 
 function RecorderStrip() {
   const { say } = useApp();
@@ -51,6 +100,7 @@ export default function LockScreen() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
   const [created, setCreated] = useState(null);
+  const [showReset, setShowReset] = useState(false);
 
   const poll = useCallback(async () => {
     try {
@@ -109,7 +159,7 @@ export default function LockScreen() {
   return (
     <div className="lock">
       <div className="lock-art">
-        <img src={logo} alt="Hermes" width="96" height="96" />
+        <SecretLogo onOpen={() => setShowReset(true)} />
         <h1>Your activity.<br />Two keys to read it.</h1>
         <ul className="lock-facts">
           <li><b>Encrypted before it is saved.</b> The recorder holds only a public key and cannot read what it wrote.</li>
@@ -195,6 +245,7 @@ export default function LockScreen() {
 
         <div className="grow" />
         <RecorderStrip />
+        <ResetWizard open={showReset && !!(stats && stats.exists)} onClose={() => setShowReset(false)} onFinished={async () => { setShowReset(false); setLockReason(null); await refreshInfo(); }} />
       </div>
     </div>
   );

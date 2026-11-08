@@ -162,6 +162,83 @@ pub async fn init_archive(state: State<'_, AppState>, usb: String) -> Res<InitOu
 }
 
 #[derive(Serialize)]
+pub struct ResetOut {
+    pub key_id: String,
+    pub share_b: String,
+    /// Where the retired archive was kept (None when the user chose to delete it).
+    pub kept_at: Option<String>,
+    /// The old key file that was on the chosen drive, renamed (None when there was none or it was deleted).
+    pub old_key_copy: Option<String>,
+}
+
+/// Clean slate. Retires the current archive and keys, then creates a fresh archive and key set.
+/// The archive must be locked, and `confirm` must be the word RESET.
+#[tauri::command]
+pub async fn reset_archive(state: State<'_, AppState>, usb: String, delete_old: bool, replace_key_file: bool, confirm: String) -> Res<ResetOut> {
+    if confirm.trim() != "RESET" {
+        return Err("Type RESET to confirm.".into());
+    }
+    if state.session.read().unwrap().is_some() {
+        return Err("Lock the archive first.".into());
+    }
+    let dir = state.data_dir.clone();
+    *state.stats_cache.lock().unwrap() = None;
+    tauri::async_runtime::spawn_blocking(move || -> Res<ResetOut> {
+        let target = hermes_cli::usb::share_b_target(usb.trim().trim_matches('"'));
+        if hermes_cli::usb::same_drive(&dir, &target) {
+            return Err(format!("{} is on the same drive as the Hermes data. Plug in a separate USB drive: the key must not live on this computer's drive.", target.display()));
+        }
+        if target.exists() && !replace_key_file {
+            return Err(format!("That drive already holds a Hermes key file ({}). Use a different USB drive, or tick the option to replace it.", target.display()));
+        }
+        let stamp = now_us() / 1_000_000;
+
+        collector::control("stop", &dir)?;
+        let aside = crate::reset::move_aside(&dir, stamp)?;
+
+        // An old key file on the chosen drive is renamed, never deleted, until the new archive exists.
+        let mut old_key: Option<PathBuf> = None;
+        if target.exists() {
+            let renamed = PathBuf::from(format!("{}.old-{stamp}", target.display()));
+            if let Err(e) = std::fs::rename(&target, &renamed) {
+                crate::reset::restore(&dir, &aside);
+                return Err(format!("could not set the old key file aside: {e}"));
+            }
+            old_key = Some(renamed);
+        }
+
+        let made = hermes_platform::default_protector().map_err(|e| e.to_string()).and_then(|prot| {
+            hermes_cli::init::init(&hermes_cli::init::InitOptions { data_dir: &dir, share_b: &target, allow_same_drive: false }, prot.as_ref())
+        });
+        let info = match made {
+            Ok(i) => i,
+            Err(e) => {
+                let _ = std::fs::remove_file(&target);
+                if let Some(k) = &old_key {
+                    let _ = std::fs::rename(k, &target);
+                }
+                crate::reset::restore(&dir, &aside);
+                return Err(format!("{e}\n\nNothing was changed: your previous archive and keys were put back."));
+            }
+        };
+
+        let mut kept_at = Some(aside.dir.display().to_string());
+        let mut old_key_copy = old_key.as_ref().map(|k| k.display().to_string());
+        if delete_old {
+            let _ = std::fs::remove_dir_all(&aside.dir);
+            if let Some(k) = &old_key {
+                let _ = std::fs::remove_file(k);
+            }
+            kept_at = None;
+            old_key_copy = None;
+        }
+        Ok(ResetOut { key_id: info.key_id, share_b: info.share_b.display().to_string(), kept_at, old_key_copy })
+    })
+    .await
+    .map_err(blocking_err)?
+}
+
+#[derive(Serialize)]
 pub struct IntegrityOut {
     pub clean: bool,
     pub summary: String,
@@ -238,8 +315,7 @@ pub async fn lock_archive(state: State<'_, AppState>) -> Res<()> {
 
 #[tauri::command]
 pub async fn integrity_info(state: State<'_, AppState>) -> Res<IntegrityOut> {
-    let session = state.session()?;
-    Ok(integrity_out(session.as_ref()))
+    Ok(integrity_out(&state.session()?))
 }
 
 /// Re-reads and re-verifies the whole archive with the same key files (picks up newly recorded events too).

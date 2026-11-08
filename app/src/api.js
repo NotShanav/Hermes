@@ -12,6 +12,7 @@ export const api = {
   lockInfo: () => call("lock_info"),
   detectKeys: () => call("detect_keys"),
   initArchive: (usb) => call("init_archive", { usb }),
+  resetArchive: (usb, deleteOld, replaceKeyFile, confirm) => call("reset_archive", { usb, deleteOld, replaceKeyFile, confirm }),
   unlock: (files) => call("unlock", { files }),
   lock: () => call("lock_archive"),
   keyPresent: () => call("key_present"),

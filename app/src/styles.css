@@ -441,6 +441,18 @@ button.cal-cell:hover { outline: 2px solid var(--text-2); outline-offset: 0; }
 @keyframes flash-out { to { opacity: 0; } }
 @keyframes lock-pop { from { transform: scale(0.6); opacity: 0; } }
 
+/* Hidden clean-slate trigger on the lock-screen logo */
+.logo-slide { position: relative; width: 216px; height: 96px; touch-action: none; user-select: none; }
+.logo-img { position: absolute; left: 0; top: 0; cursor: grab; z-index: 2; will-change: transform; }
+.logo-img:active { cursor: grabbing; }
+.keyhole { position: absolute; left: 0; top: 0; width: 96px; height: 96px; border-radius: 24px; display: grid; place-items: center; z-index: 1;
+  color: var(--accent-2); background: radial-gradient(circle at 30% 25%, var(--panel-3), var(--panel)); border: 1px solid var(--line-strong); cursor: pointer; box-shadow: inset 0 0 22px rgba(0, 0, 0, 0.35); }
+.keyhole:hover { color: #fff; border-color: var(--accent); }
+.check-row { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; font-size: 13.5px; }
+.check-row input { margin-top: 3px; accent-color: var(--accent); }
+.guide { display: grid; gap: 8px; padding-left: 20px; color: var(--text-2); }
+.guide b { color: var(--text); }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }

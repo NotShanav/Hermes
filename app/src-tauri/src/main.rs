@@ -6,6 +6,7 @@ mod collector;
 mod commands;
 mod prefs;
 mod queries;
+mod reset;
 mod segments;
 mod state;
 
@@ -21,6 +22,7 @@ fn main() {
             commands::lock_info,
             commands::detect_keys,
             commands::init_archive,
+            commands::reset_archive,
             commands::unlock,
             commands::lock_archive,
             commands::key_present,
