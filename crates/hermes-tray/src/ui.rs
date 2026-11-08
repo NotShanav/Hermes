@@ -7,6 +7,7 @@
 #![allow(unsafe_code)]
 
 use crate::icon::{self, IconKind};
+use crate::live;
 use crate::menu::{self, ids, Item, MenuInput};
 use crate::settings::Settings;
 use hermes_collector::{format_status, warnings, Status};
@@ -234,6 +235,13 @@ impl TrayUi {
     }
 
     // ------------------------------------------------------------------ menu & commands
+    /// Publishes the collection state for the desktop app (counters only; best effort).
+    fn publish_live(&self, state: CollectionState) {
+        let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_micros() as i64).unwrap_or(0);
+        let snap = live::snapshot(state, &self.status.borrow(), now);
+        let _ = live::write(&live::live_path(&self.data_dir), &snap);
+    }
+
     fn autostart_command(&self) -> String {
         menu::autostart_command(&self.exe_path.to_string_lossy(), &self.data_dir.to_string_lossy())
     }
@@ -426,6 +434,7 @@ impl Ui for TrayUi {
         }
         self.refresh_icon();
         self.refresh_dot();
+        self.publish_live(state);
         if state == CollectionState::Recording && !self.announced {
             self.announced = true;
             self.balloon("Hermes is recording", "Right-click the icon to pause, see status, or exit.");
@@ -436,6 +445,7 @@ impl Ui for TrayUi {
 
     fn activity(&mut self) {
         self.refresh_icon(); // warning indicator follows storage health
+        self.publish_live(self.state);
     }
 
     fn message(&mut self, hwnd_: isize, msg: u32, wp: usize, lp: isize) -> Option<isize> {
@@ -485,6 +495,7 @@ impl Ui for TrayUi {
     }
 
     fn detach(&mut self) {
+        self.publish_live(CollectionState::Stopped);
         unsafe {
             let d = self.nid(NIF_ICON);
             let _ = Shell_NotifyIconW(NIM_DELETE, &d);

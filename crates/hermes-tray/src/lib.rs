@@ -5,6 +5,7 @@
 //! Pure modules (settings, icon, menu) are portable and unit-tested everywhere; `ui` is the Win32 shell.
 
 pub mod icon;
+pub mod live;
 pub mod menu;
 pub mod settings;
 

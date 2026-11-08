@@ -20,12 +20,33 @@ jobs:
           targets: x86_64-pc-windows-msvc
 
       - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            . -> target
+            app/src-tauri -> target
 
       - name: Build the whole workspace (release)
         run: cargo build --release --workspace --locked --target x86_64-pc-windows-msvc
 
       - name: Run the test-suite
         run: cargo test --workspace --locked --target x86_64-pc-windows-msvc
+
+      # ---- Desktop app (Tauri). Separate Cargo workspace: the --locked builds above are unaffected. ----
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install app dependencies
+        working-directory: app
+        run: npm install --no-audit --no-fund
+
+      - name: Build the desktop app (release, no installer)
+        working-directory: app
+        run: npx tauri build --no-bundle
+
+      - name: Test the app's Rust logic (segments, aggregation, categories)
+        run: cargo test --manifest-path app/src-tauri/Cargo.toml
 
       # Real Windows checks of the pieces that only exist on Windows: DPAPI, NTFS, the full command flow.
       - name: Filesystem + DPAPI check on this Windows runner (informational)
@@ -35,7 +56,7 @@ jobs:
           New-Item -ItemType Directory -Force -Path $t | Out-Null
           .\target\x86_64-pc-windows-msvc\release\hermes-keytool.exe fscheck --dir $t --local-dir $env:RUNNER_TEMP --events 5000
 
-      - name: "End-to-end smoke test (init, record 8 s, check, search, export) (informational: needs an interactive desktop)"
+      - name: End-to-end smoke test (init, record 8 s, check, search, export) (informational: needs an interactive desktop)
         continue-on-error: true
         shell: pwsh
         run: .\scripts\smoke.ps1 -Exe .\target\x86_64-pc-windows-msvc\release\hermes.exe -Seconds 8 -NonInteractive
@@ -47,6 +68,8 @@ jobs:
           New-Item -ItemType Directory -Force -Path $out | Out-Null
           $rel = "target\x86_64-pc-windows-msvc\release"
           foreach ($e in "hermes","hermes-tray","hermes-collector","hermes-keytool","hermes-dump") { Copy-Item "$rel\$e.exe" $out }
+          # The tray's "Open viewer" menu item launches hermes-viewer.exe from its own folder.
+          Copy-Item "app\src-tauri\target\release\hermes-app.exe" "$out\hermes-viewer.exe"
           Copy-Item README.md, BUILD.md $out
           Copy-Item docs -Recurse $out\docs
           Copy-Item scripts -Recurse $out\scripts
