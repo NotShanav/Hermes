@@ -1,6 +1,7 @@
 {
   "name": "hermes-app",
   "private": true,
+  "author": "NotShanav",
   "version": "0.1.0",
   "type": "module",
   "scripts": {

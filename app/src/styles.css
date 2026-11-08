@@ -101,20 +101,21 @@ code, .mono { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; f
 .link:hover { text-decoration: underline; }
 
 /* ---------------------------------------------------------------- layout */
-.app { display: grid; grid-template-columns: auto 1fr; height: 100%; }
-.main { display: flex; flex-direction: column; min-width: 0; height: 100%; }
-.page { flex: 1; overflow-y: auto; padding: 8px 28px 40px; animation: page-in 0.18s ease-out; }
+.app { display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); height: 100vh; overflow: hidden; }
+.main { display: flex; flex-direction: column; min-width: 0; min-height: 0; height: 100%; overflow: hidden; }
+.page { flex: 1 1 0; min-height: 0; overflow-y: auto; overflow-x: hidden; padding: 8px 28px 40px; animation: page-in 0.18s ease-out; }
 @keyframes page-in { from { opacity: 0; } to { opacity: 1; } }
 
 .side {
   width: 236px; background: var(--panel); border-right: 1px solid var(--line);
   display: flex; flex-direction: column; padding: 16px 12px 12px; transition: width 0.18s ease;
+  height: 100%; min-height: 0; overflow: hidden; flex: none;
 }
 .side.collapsed { width: 68px; }
-.brand { display: flex; align-items: center; gap: 11px; padding: 2px 6px 18px; }
+.brand { flex: none; display: flex; align-items: center; gap: 11px; padding: 2px 6px 18px; }
 .brand img { border-radius: 9px; flex: none; }
 .brand-name { font-size: 18px; font-weight: 800; letter-spacing: -0.02em; }
-.nav { display: flex; flex-direction: column; gap: 2px; flex: 1; overflow-y: auto; }
+.nav { display: flex; flex-direction: column; gap: 2px; flex: 1 1 0; min-height: 0; overflow-y: auto; }
 .nav-sep { height: 1px; background: var(--line); margin: 10px 8px; }
 .nav-item {
   display: flex; align-items: center; gap: 12px; padding: 9px 11px; border: 0; background: none; border-radius: 10px;
@@ -126,7 +127,7 @@ code, .mono { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; f
 .nav-item svg { flex: none; }
 .collapsed .nav-label, .collapsed .brand-name { display: none; }
 .collapsed .nav-item, .collapsed .rec-pill { justify-content: center; padding-left: 0; padding-right: 0; }
-.side-foot { display: flex; flex-direction: column; gap: 2px; border-top: 1px solid var(--line); padding-top: 10px; }
+.side-foot { flex: none; display: flex; flex-direction: column; gap: 2px; border-top: 1px solid var(--line); padding-top: 10px; }
 
 .rec-pill {
   display: flex; align-items: center; gap: 10px; padding: 9px 11px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel-2);
@@ -407,7 +408,7 @@ button.cal-cell:hover { outline: 2px solid var(--text-2); outline-offset: 0; }
 .recorder.warn { border-color: color-mix(in srgb, var(--warn) 40%, var(--line)); }
 
 /* ---------------------------------------------------------------- lock + setup */
-.lock { height: 100%; display: grid; grid-template-columns: minmax(380px, 44%) 1fr; }
+.lock { height: 100vh; overflow-y: auto; display: grid; grid-template-columns: minmax(380px, 44%) 1fr; }
 .lock-art {
   padding: 56px 52px; display: flex; flex-direction: column; justify-content: center; gap: 26px; position: relative; overflow: hidden;
   background: radial-gradient(900px 500px at 20% 10%, color-mix(in srgb, var(--accent-deep) 55%, transparent), transparent 70%), var(--panel);
@@ -428,6 +429,17 @@ button.cal-cell:hover { outline: 2px solid var(--text-2); outline-offset: 0; }
 .key-row:last-child { border-bottom: 0; }
 .keysets { display: grid; gap: 2px; }
 .lock-rec { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); flex-wrap: wrap; }
+
+/* Shown the instant the USB key is pulled: covers everything, then fades out onto the lock screen. */
+.lock-flash { position: fixed; inset: 0; z-index: 200; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+  background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(22px); animation: flash-in 0.12s ease-out, flash-out 0.35s ease-in 0.8s forwards; }
+.lock-flash b { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; }
+.lock-flash-icon { width: 92px; height: 92px; border-radius: 28px; display: grid; place-items: center; color: var(--accent-2);
+  background: linear-gradient(145deg, var(--panel-3), var(--panel)); border: 1px solid var(--line-strong); box-shadow: 0 0 60px var(--glow);
+  animation: lock-pop 0.45s cubic-bezier(0.2, 1.4, 0.4, 1); }
+@keyframes flash-in { from { opacity: 0; } }
+@keyframes flash-out { to { opacity: 0; } }
+@keyframes lock-pop { from { transform: scale(0.6); opacity: 0; } }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }

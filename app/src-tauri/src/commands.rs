@@ -220,6 +220,16 @@ pub async fn unlock(state: State<'_, AppState>, files: Vec<String>) -> Res<Integ
     Ok(out)
 }
 
+/// True while every key file used to unlock is still readable. Pulling the USB drive makes this false.
+#[tauri::command]
+pub async fn key_present(state: State<'_, AppState>) -> Res<bool> {
+    let guard = state.session.read().unwrap();
+    Ok(match guard.as_ref() {
+        Some(s) => s.key_files.iter().all(|p| p.exists()),
+        None => true,
+    })
+}
+
 #[tauri::command]
 pub async fn lock_archive(state: State<'_, AppState>) -> Res<()> {
     *state.session.write().unwrap() = None;

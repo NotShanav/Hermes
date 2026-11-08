@@ -14,6 +14,7 @@ export const api = {
   initArchive: (usb) => call("init_archive", { usb }),
   unlock: (files) => call("unlock", { files }),
   lock: () => call("lock_archive"),
+  keyPresent: () => call("key_present"),
   integrity: () => call("integrity_info"),
   recheck: () => call("recheck"),
   summary: (fromMs, toMs) => call("summary", { fromMs, toMs }),

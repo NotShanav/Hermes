@@ -2,6 +2,7 @@
 name = "hermes-app"
 description = "Hermes desktop app: unlock screen, dashboards, timeline, privacy controls (Tauri). Reads the archive through hermes-viewer; records nothing itself."
 version = "0.1.0"
+authors = ["NotShanav"]
 edition = "2021"
 rust-version = "1.88"
 license = "MIT OR Apache-2.0"

@@ -43,7 +43,7 @@ function RecorderStrip() {
 }
 
 export default function LockScreen() {
-  const { info, refreshInfo, say } = useApp();
+  const { info, refreshInfo, say, lockReason, setLockReason } = useApp();
   const [stats, setStats] = useState(null);
   const [found, setFound] = useState([]);
   const [picked, setPicked] = useState([]);
@@ -74,6 +74,7 @@ export default function LockScreen() {
     setErr(null);
     try {
       await api.unlock(list);
+      setLockReason(null);
       await refreshInfo();
     } catch (e) {
       setErr(e.message);
@@ -156,6 +157,7 @@ export default function LockScreen() {
         {stats && stats.exists && (
           <>
             <h2>Unlock your history</h2>
+            {lockReason && <div className="notice warn">{lockReason}</div>}
             <p className="muted">
               Recording keeps running while this screen is shown, and does not need the USB drive. Reading the history needs the key file from your USB drive and this Windows account.
             </p>

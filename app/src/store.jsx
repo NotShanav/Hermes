@@ -34,6 +34,9 @@ export function AppProvider({ children }) {
   const [pendingDay, setPendingDay] = useState(null); // a day (UTC ms of local midnight) the Timeline should open
   const [toast, setToast] = useState(null);
   const lockTimer = useRef(null);
+  const [lockFlash, setLockFlash] = useState(false); // lock-icon transition shown when the USB key is pulled
+  const [lockReason, setLockReason] = useState(null);
+  const lockingForKey = useRef(false);
 
   const refreshInfo = useCallback(async () => {
     try {
@@ -92,6 +95,37 @@ export function AppProvider({ children }) {
     setRoute({ page: "overview", param: null });
   }, [refreshInfo]);
 
+  // USB key removed: lock at once, show the lock icon, then land on the lock screen.
+  const isUnlocked = !!(info && info.unlocked);
+  useEffect(() => {
+    if (!isUnlocked) return;
+    const t = setInterval(async () => {
+      if (lockingForKey.current) return;
+      let present = true;
+      try {
+        present = await api.keyPresent();
+      } catch (e) {
+        return; // a failed check is not evidence of removal
+      }
+      if (present) return;
+      lockingForKey.current = true;
+      setLockFlash(true); // cover the app immediately, before anything else is drawn
+      try {
+        await api.lock();
+      } catch (e) {
+        /* locking only drops memory */
+      }
+      setLockReason("The USB key was removed, so Hermes locked itself. Plug it back in to unlock.");
+      await refreshInfo();
+      setRoute({ page: "overview", param: null });
+      setTimeout(() => {
+        setLockFlash(false);
+        lockingForKey.current = false;
+      }, 1100);
+    }, 700);
+    return () => clearInterval(t);
+  }, [isUnlocked, refreshInfo]);
+
   // Auto-lock after idle time inside the app.
   const unlocked = !!(info && info.unlocked);
   const mins = info ? info.prefs.auto_lock_minutes : 0;
@@ -127,7 +161,7 @@ export function AppProvider({ children }) {
     rev, bump: () => setRev((r) => r + 1),
     savePrefs, lockNow,
     exploreSeed, setExploreSeed, pendingDay, setPendingDay,
-    toast, say,
+    toast, say, lockFlash, lockReason, setLockReason,
     categories: info ? info.categories : [],
   };
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

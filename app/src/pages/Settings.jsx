@@ -51,6 +51,7 @@ export default function SettingsPage() {
           <img src={logo} width="64" height="64" alt="" />
           <dl className="kv-list grow">
             <KV k="Hermes app" v={`Beta ${info.version}`} />
+            <KV k="Author" v="NotShanav" />
             <KV k="Data folder" v={info.data_dir} mono />
             <KV k="Preferences file" v="hermes-app.json in the data folder (no archive content)" />
           </dl>

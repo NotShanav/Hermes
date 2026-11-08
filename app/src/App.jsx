@@ -1,3 +1,4 @@
+import { Lock } from "lucide-react";
 import { AppProvider, useApp } from "./store";
 import { Sidebar, Topbar, Toast } from "./components/Shell";
 import LockScreen from "./components/LockScreen";
@@ -25,6 +26,18 @@ const PAGES = {
   settings: SettingsPage,
 };
 
+function LockFlash() {
+  const { lockFlash } = useApp();
+  if (!lockFlash) return null;
+  return (
+    <div className="lock-flash" role="alert" aria-live="assertive">
+      <div className="lock-flash-icon"><Lock size={44} strokeWidth={1.8} /></div>
+      <b>Locked</b>
+      <span className="muted">USB key removed</span>
+    </div>
+  );
+}
+
 function Root() {
   const { info, bootError, route } = useApp();
   if (bootError) {
@@ -36,7 +49,7 @@ function Root() {
     );
   }
   if (!info) return <div className="boot"><span className="spin" /></div>;
-  if (!info.unlocked) return (<><LockScreen /><Toast /></>);
+  if (!info.unlocked) return (<><LockScreen /><Toast /><LockFlash /></>);
   const Page = PAGES[route.page] || Overview;
   return (
     <div className="app">
@@ -48,6 +61,7 @@ function Root() {
         </main>
       </div>
       <Toast />
+      <LockFlash />
     </div>
   );
 }

@@ -1,5 +1,7 @@
 # Hermes desktop app
 
+Author: NotShanav
+
 A desktop interface for Hermes: unlock screen, dashboards, timeline, application and window analytics,
 search, categories, privacy and recorder controls, integrity check and export. Built with Tauri 2 and React.
 

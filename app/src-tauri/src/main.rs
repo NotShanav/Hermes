@@ -23,6 +23,7 @@ fn main() {
             commands::init_archive,
             commands::unlock,
             commands::lock_archive,
+            commands::key_present,
             commands::integrity_info,
             commands::recheck,
             commands::summary,
