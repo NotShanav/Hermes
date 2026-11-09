@@ -124,6 +124,7 @@ export function Segmented({ value, onChange, options, small }) {
     measure();
     const ro = new ResizeObserver(measure);
     ro.observe(el);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(measure);
     return () => ro.disconnect();
   }, [fluid, value, options.length]);
   return (

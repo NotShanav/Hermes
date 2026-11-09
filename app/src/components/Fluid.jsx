@@ -108,7 +108,7 @@ let filterSeq = 0;
 
 /** A lens layer for a small, fixed-size glass element (give the parent `position: relative`). It refracts what is
  *  behind it through an SVG filter sized to the element. Renders nothing unless Fluidity is on at Full intensity. */
-export function LiquidLayer({ radius = 12, bezel = 12, depth = 7, chroma = 0.16, soft = false }) {
+export function LiquidLayer({ radius = 12, bezel = 12, depth = 7, chroma = 0.1 }) {
   const { liquid } = useApp();
   const ref = useRef(null);
   const id = useRef(`hm-lens-${++filterSeq}`);
@@ -147,8 +147,8 @@ export function LiquidLayer({ radius = 12, bezel = 12, depth = 7, chroma = 0.16,
   if (!liquid) return null;
   const ready = box && box.w > 8 && box.h > 8;
   const map = ready ? makeMap(box.w, box.h, radius, bezel) : null;
-  const S = depth * 2.7;
-  const bf = ready ? `url(#${id.current}) blur(0.5px) saturate(1.75) brightness(1.1) contrast(1.04)` : undefined;
+  const S = depth * 1.2; // a few pixels of bend at the rim: refraction, not smearing
+  const bf = ready ? `url(#${id.current}) blur(0.4px) saturate(1.5) brightness(1.06)` : undefined;
   return (
     <>
       {ready && (
@@ -169,7 +169,7 @@ export function LiquidLayer({ radius = 12, bezel = 12, depth = 7, chroma = 0.16,
           </defs>
         </svg>
       )}
-      <span ref={ref} className={`liquid-layer${soft ? " soft" : ""}`} style={ready ? { backdropFilter: bf, WebkitBackdropFilter: bf, borderRadius: radius } : { borderRadius: radius }} />
+      <span ref={ref} className="liquid-layer" style={ready ? { backdropFilter: bf, WebkitBackdropFilter: bf, borderRadius: radius } : { borderRadius: radius }} />
     </>
   );
 }
@@ -199,25 +199,34 @@ export function GooHalo() {
   );
 }
 
-/** Lets a single element lean toward the cursor, with a springy release. Used on the unlock button only. */
+/** Lets the button lean a few pixels toward the cursor. The OUTER element never moves: it owns the pointer events and
+ *  the hit area, and the position is always measured from it. Only the INNER element is transformed, so the pointer can
+ *  never "escape" the thing that is measuring it (that feedback loop made the first version slide away from the cursor). */
 export function Elastic({ children }) {
   const { liquid } = useApp();
-  const ref = useRef(null);
+  const inner = useRef(null);
   if (!liquid) return children;
+  const clamp = (v) => Math.max(-1, Math.min(1, v));
   const move = (e) => {
-    const el = ref.current;
+    const box = e.currentTarget.getBoundingClientRect(); // outer: never transformed
+    const el = inner.current;
     if (!el) return;
-    const r = el.getBoundingClientRect();
-    const dx = (e.clientX - (r.left + r.width / 2)) / r.width;
-    const dy = (e.clientY - (r.top + r.height / 2)) / r.height;
-    el.style.transform = `translate(${dx * 10}px, ${dy * 8}px) scale(1.035, ${1.035 - Math.abs(dx) * 0.03})`;
+    const dx = clamp((e.clientX - (box.left + box.width / 2)) / (box.width / 2));
+    const dy = clamp((e.clientY - (box.top + box.height / 2)) / (box.height / 2));
+    el.style.transition = "transform 0.14s ease-out"; // follow smoothly, no overshoot while the pointer is moving
+    el.style.transform = `translate(${(dx * 3).toFixed(2)}px, ${(dy * 2.5).toFixed(2)}px) scale(1.025)`;
   };
   const leave = () => {
-    if (ref.current) ref.current.style.transform = "";
+    const el = inner.current;
+    if (!el) return;
+    el.style.transition = ""; // the springy release comes from the stylesheet
+    el.style.transform = "";
   };
   return (
-    <span ref={ref} className="elastic" onPointerMove={move} onPointerLeave={leave}>
-      {children}
+    <span className="elastic" onPointerMove={move} onPointerLeave={leave}>
+      <span ref={inner} className="elastic-in">
+        {children}
+      </span>
     </span>
   );
 }

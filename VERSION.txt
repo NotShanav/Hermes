@@ -1,18 +1,25 @@
-Hermes v1.2.0 (desktop app 1.2.0 on Hermes core beta-0.1), 2026-11-09
+Hermes v1.2.1 (desktop app 1.2.1 on Hermes core beta-0.1), 2026-11-09
 Contains: Hermes core + desktop app (app/) + CI workflow.
-Compiled by the author on GitHub Actions: NOT YET for this version (v1.1.0 compiled and ran; the changes below are new and untested).
+Compiled by the author on GitHub Actions: NOT YET for this version (v1.2.0 compiled and ran; the changes below are new and untested).
 
-New in v1.2.0 (Fluidity polish, Modern is untouched)
-- Vivid backdrop: brighter glowing blobs (violet, magenta, cyan, blue), a coloured base gradient, soft floating glass orbs,
-  fine film grain. Larger, livelier drift.
-- Translucent glass cards with a light sheen and a bright gradient edge (cards ~70% opaque; text contrast kept).
-- Stronger frosted chrome: more transparency, saturation and brightness behind sidebar, top bar, popovers, drawer, dialogs, toasts.
-- Liquid glass v2: red/green/blue are refracted separately for colour fringing at the rim; stronger bend; a two-sided bright rim;
-  a highlight that follows the cursor. Now also on the top bar, popovers, toasts and every primary button (plus the nav pill,
-  segmented thumb, recording pill, range button and Unlock button from v1.1.0).
-- Intensity: Full = all of the above; Subtle = frosted glass and two quiet blobs, no orbs, no refraction (lightest on the GPU).
+Fixes in v1.2.1 (Fluidity only; Modern is untouched)
+- Glass rebuilt to follow the Liquid Glass spec: every glass surface keeps a transparent box and gets its frosted layer
+  (translucent fill, blur 18-24px + saturate 165-180%, soft ambient shadow, inner top highlight) as a ::before pseudo-element,
+  plus a 1px gradient refraction rim (::after). Cards, stat tiles, sidebar, top bar, popover, drawer, dialog, toast and the
+  lock-screen panels are all translucent glass now (no solid backgrounds).
+- Root cause of the grey / fringed glass in v1.2.0: lenses were nested inside elements that had their own backdrop blur,
+  so they saw a half-transparent patch. Frost now lives on pseudo-elements, so lenses see the real background.
+- Lenses sit behind text (they washed labels out in light mode) and bend a few pixels instead of ~20; removed from the top bar,
+  popover and toast (they distorted the content inside). Kept on: nav pill, segmented thumb, recording pill, range button,
+  primary buttons.
+- Light mode: pastel mesh background (lavender, rose, sky), white translucent glass, darker rim hairline, quieter orbs.
+- Unlock button: the lean effect measured the element it was moving (feedback loop, bouncy easing) so it slid away from the
+  cursor. Now the outer element is fixed and only an inner element leans 3px, smoothly, springing back on release.
+- Animations audited: glass surfaces animate transform only (opacity would break their blur); hover lift removed from buttons,
+  chips and stat tiles (it made them flicker under the cursor), replaced by a glow; press = scale(0.97).
+- Cosmetic: space above the notice in Settings > Security.
 
-Unchanged from v1.1.0: Modern/Fluidity setting, zoomable ribbon and lanes, layout hardening, fluid motion.
-Earlier features still present: scroll/sidebar fix, USB-removal auto-lock, hidden clean-slate reset, author tag NotShanav.
+Unchanged: Modern/Fluidity setting, zoomable ribbon and lanes, layout hardening, USB-removal lock, hidden clean-slate reset.
+Author tag NotShanav.
 
 Naming: Hermes-v<major>.<minor>.<patch>.zip

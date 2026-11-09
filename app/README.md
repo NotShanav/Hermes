@@ -112,3 +112,11 @@ written in-house), and a self-contained violet backdrop instead of Windows Mica,
 On the Overview ribbon and the Timeline lanes: scroll to zoom (the instant under the cursor stays put), drag to move,
 double-click to reset, or use the buttons: zoom out, zoom in, *fit to the active hours*, *whole day*. A minimap shows
 where you are. Down to 15 seconds across the full width; tick labels switch to seconds. Lanes now show application names.
+
+### How the Fluidity glass is built (read this before changing it)
+
+Each glass surface keeps a transparent box. Its frost (translucent fill, `backdrop-filter` blur + saturate, shadow, inner
+highlight) is a `::before` pseudo-element at `z-index: -1`, and the gradient rim is `::after`. Do not put `backdrop-filter`,
+`filter` or `opacity < 1` on the surfaces themselves or animate their opacity: any of those makes the surface a "backdrop
+root", and the small liquid lenses inside it (nav pill, segmented thumb, buttons) then refract a half-transparent patch
+(grey blocks, colour fringes). Lenses are `position: absolute; z-index: -1` inside their host so they never cover text.

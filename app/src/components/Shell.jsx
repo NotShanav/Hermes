@@ -125,7 +125,6 @@ function RangePicker() {
       </button>
       {open && (
         <div className="popover">
-          <LiquidLayer radius={12} bezel={12} depth={6} soft />
           {RANGES.map((r) => (
             <button key={r.key} className={`pop-item ${rangeKey === r.key ? "on" : ""}`} onClick={() => { setRangeKey(r.key); setOpen(false); }}>
               {r.label}
@@ -174,7 +173,6 @@ export function Topbar() {
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search apps and window titles" aria-label="Search recorded activity" />
       </form>
       {RANGE_PAGES.includes(route.page) && <RangePicker />}
-      <LiquidLayer radius={18} bezel={18} depth={8} soft />
     </header>
   );
 }
@@ -185,7 +183,6 @@ export function Toast() {
   return (
     <div className={`toast ${toast.tone}`} role="status" key={toast.id}>
       {toast.text}
-      <LiquidLayer radius={12} bezel={12} depth={6} soft />
     </div>
   );
 }
