@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   AppWindow, BarChart3, ChevronDown, Clock, Database, Globe, LayoutDashboard, Lock, PanelLeftClose, PanelLeftOpen, Search, Settings as Cog, ShieldCheck, Tags, Calendar,
 } from "lucide-react";
@@ -7,6 +7,7 @@ import { api } from "../api";
 import { useApp } from "../store";
 import { RANGES, fmtDate, isoDay, rangeLabel, DAY } from "../util";
 import { STATE_LABEL, STATE_TONE, useRecorder } from "../hooks";
+import { LiquidLayer } from "./Fluid";
 
 const NAV = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
@@ -26,9 +27,26 @@ export const PAGE_TITLES = Object.fromEntries([...NAV, ...MANAGE].map((n) => [n.
 const RANGE_PAGES = ["overview", "apps", "pages", "categories", "explore"];
 
 export function Sidebar() {
-  const { route, go, info, lockNow } = useApp();
+  const { route, go, info, lockNow, fluid } = useApp();
   const [collapsed, setCollapsed] = useState(!!info.prefs.sidebar_collapsed);
   const { rec } = useRecorder(5000);
+  const navRef = useRef(null);
+  const [pill, setPill] = useState(null);
+
+  // Fluidity: one glass pill that glides between the navigation items.
+  useLayoutEffect(() => {
+    if (!fluid) return undefined;
+    const nav = navRef.current;
+    if (!nav) return undefined;
+    const measure = () => {
+      const on = nav.querySelector(".nav-item.on");
+      setPill(on ? { y: on.offsetTop, h: on.offsetHeight } : null);
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(nav);
+    return () => ro.disconnect();
+  }, [fluid, route.page, collapsed]);
 
   const toggle = () => {
     const next = !collapsed;
@@ -55,7 +73,12 @@ export function Sidebar() {
         <img src={logo} alt="" width="34" height="34" />
         <span className="brand-name">Hermes</span>
       </div>
-      <nav className="nav">
+      <nav className="nav" ref={navRef}>
+        {fluid && pill && (
+          <span className="nav-pill" style={{ transform: `translateY(${pill.y}px)`, height: pill.h }}>
+            <LiquidLayer radius={12} bezel={11} depth={6} />
+          </span>
+        )}
         {NAV.map((n) => <Item key={n.id} n={n} />)}
         <div className="nav-sep" />
         {MANAGE.map((n) => <Item key={n.id} n={n} />)}
@@ -64,6 +87,7 @@ export function Sidebar() {
         <button className={`rec-pill ${STATE_TONE[st] || "off"}`} onClick={() => go("privacy")} title="Open recording controls">
           <i className="rec-dot" />
           <span className="nav-label">{rec ? STATE_LABEL[st] : "Checking recorder"}</span>
+          <LiquidLayer radius={10} bezel={9} depth={5} />
         </button>
         <button className="nav-item" onClick={lockNow} title="Lock the archive and clear it from memory">
           <Lock size={18} strokeWidth={1.9} />
@@ -97,6 +121,7 @@ function RangePicker() {
         <Calendar size={15} />
         <span>{rangeLabel(rangeKey, range, offset, custom)}</span>
         <ChevronDown size={14} />
+        <LiquidLayer radius={10} bezel={9} depth={5} />
       </button>
       {open && (
         <div className="popover">

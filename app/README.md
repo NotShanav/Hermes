@@ -84,3 +84,30 @@ appears when an archive already exists.
 It never decrypts or reads the old history, and it never overwrites an old key file: an old file on the chosen drive is
 renamed (`hermes-share-b.key.old-<time>`) unless you chose to delete the old data. Old data is unreadable afterwards
 unless you still have its keys. Your app preferences, category rules and recorder settings are kept.
+
+## Interface styles: Modern and Fluidity
+
+Settings, Interface style. **Modern** is the original solid look and is the default. **Fluidity** adds:
+
+* a living backdrop of slowly drifting colour blobs (pure CSS, no WebGL, no extra packages);
+* frosted-glass chrome: sidebar, top bar, popovers, drawer, modal, toast and the lock screen;
+* near-opaque data cards, so charts and category colours keep their contrast;
+* liquid-glass accents with real refraction (an in-house SVG displacement filter whose map is a `data:` URL): the
+  active-nav pill, the segmented-control thumb, the recording pill, the date-range button and the Unlock button;
+* fluid motion: the nav pill and segmented thumb glide between options, pages lift in, stat values roll, the drawer
+  and dialogs spring in, and the Unlock button leans toward the cursor.
+
+**Intensity.** *Full* uses five blobs, liquid refraction and the lock-screen blob halo. *Subtle* keeps frosted glass and two
+quiet blobs only. Animation pauses when the window is hidden or unfocused and while the archive is locked.
+Windows' reduced-transparency setting turns glass into opaque panels. Nothing in Fluidity makes a network request,
+and the CSP is unchanged. The preferences are stored as `ui_style` and `effects` in `hermes-app.json`; older files
+without them load as Modern / Full.
+
+Design choices that differ from the research brief: no new npm packages (blobs, glass, refraction and motion are
+written in-house), and a self-contained violet backdrop instead of Windows Mica, so it looks the same on every PC.
+
+## Day ribbon and timeline lanes: zoom
+
+On the Overview ribbon and the Timeline lanes: scroll to zoom (the instant under the cursor stays put), drag to move,
+double-click to reset, or use the buttons: zoom out, zoom in, *fit to the active hours*, *whole day*. A minimap shows
+where you are. Down to 15 seconds across the full width; tick labels switch to seconds. Lanes now show application names.

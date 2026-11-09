@@ -1,5 +1,7 @@
-import { useEffect } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
+import { useApp } from "../store";
+import { LiquidLayer } from "./Fluid";
 
 export function Card({ title, sub, actions, children, className = "", pad = true, onClick }) {
   return (
@@ -24,7 +26,7 @@ export function Stat({ label, value, sub, delta, onClick, hint }) {
   return (
     <button className={`stat ${onClick ? "clickable" : ""}`} onClick={onClick} disabled={!onClick} title={hint}>
       <span className="stat-label">{label}</span>
-      <span className="stat-value">{value}</span>
+      <span className="stat-value"><span className="roll" key={String(value)}>{value}</span></span>
       <span className="stat-sub">
         {delta != null && (
           <span className={`delta ${up ? "up" : down ? "down" : ""}`}>
@@ -81,9 +83,9 @@ export function Notice({ tone = "info", title, children }) {
   );
 }
 
-export function Button({ children, variant = "default", small, icon: Icon, ...rest }) {
+export function Button({ children, variant = "default", small, icon: Icon, className = "", ...rest }) {
   return (
-    <button className={`btn ${variant} ${small ? "small" : ""}`} {...rest}>
+    <button {...rest} className={`btn ${variant} ${small ? "small" : ""} ${className}`}>
       {Icon && <Icon size={small ? 14 : 16} strokeWidth={2} />}
       {children}
     </button>
@@ -106,8 +108,30 @@ export function Toggle({ checked, onChange, label, desc, disabled }) {
 }
 
 export function Segmented({ value, onChange, options, small }) {
+  const { fluid } = useApp();
+  const ref = useRef(null);
+  const [thumb, setThumb] = useState(null);
+  // Fluidity: one glass thumb that glides to the selected option.
+  useLayoutEffect(() => {
+    if (!fluid) return undefined;
+    const el = ref.current;
+    if (!el) return undefined;
+    const measure = () => {
+      const on = el.querySelector("button.on");
+      setThumb(on ? { x: on.offsetLeft, w: on.offsetWidth } : null);
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [fluid, value, options.length]);
   return (
-    <div className={`seg ${small ? "small" : ""}`} role="tablist">
+    <div className={`seg ${small ? "small" : ""}`} role="tablist" ref={ref}>
+      {fluid && thumb && (
+        <span className="seg-thumb" style={{ transform: `translateX(${thumb.x}px)`, width: thumb.w }}>
+          <LiquidLayer radius={8} bezel={8} depth={5} />
+        </span>
+      )}
       {options.map((o) => (
         <button key={o.value} role="tab" aria-selected={value === o.value} className={value === o.value ? "on" : ""} onClick={() => onChange(o.value)}>
           {o.label}

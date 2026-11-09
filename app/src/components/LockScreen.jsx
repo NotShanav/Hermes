@@ -7,6 +7,7 @@ import { api } from "../api";
 import { useApp } from "../store";
 import { Button, ErrorNote, Pill } from "./ui";
 import ResetWizard from "./ResetWizard";
+import { Elastic, GooHalo, LiquidLayer } from "./Fluid";
 import { STATE_LABEL, STATE_TONE, useRecorder } from "../hooks";
 import { ago, fmtNum } from "../util";
 
@@ -159,7 +160,7 @@ export default function LockScreen() {
   return (
     <div className="lock">
       <div className="lock-art">
-        <SecretLogo onOpen={() => setShowReset(true)} />
+        <div className="logo-stage"><GooHalo /><SecretLogo onOpen={() => setShowReset(true)} /></div>
         <h1>Your activity.<br />Two keys to read it.</h1>
         <ul className="lock-facts">
           <li><b>Encrypted before it is saved.</b> The recorder holds only a public key and cannot read what it wrote.</li>
@@ -236,9 +237,12 @@ export default function LockScreen() {
               ))}
             </div>
             <ErrorNote error={err} />
-            <Button variant="primary" icon={KeyRound} disabled={busy || files.length === 0} onClick={() => unlock(files)}>
-              {busy ? "Unlocking and verifying" : "Unlock"}
-            </Button>
+            <Elastic>
+              <Button variant="primary" className="glass-btn" icon={KeyRound} disabled={busy || files.length === 0} onClick={() => unlock(files)}>
+                {busy ? "Unlocking and verifying" : "Unlock"}
+                <LiquidLayer radius={10} bezel={10} depth={6} />
+              </Button>
+            </Elastic>
             {busy && <p className="muted small">Decrypting and verifying signatures. Large archives take a moment.</p>}
           </>
         )}

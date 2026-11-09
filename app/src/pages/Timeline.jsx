@@ -3,7 +3,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { api } from "../api";
 import { useApp, useAsync, useCategoryMap } from "../store";
 import { Card, Empty, ErrorNote, KV, Loading, Segmented, Stat } from "../components/ui";
-import { Lanes, Ribbon } from "../components/charts";
+import { Lanes, Ribbon } from "../components/zoomcharts";
 import { DAY, appColor, cleanAppName, dayStart, fmtClock, fmtClockSec, fmtDate, fmtDur, fromIsoDay, isoDay } from "../util";
 
 export default function Timeline() {

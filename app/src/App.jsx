@@ -2,6 +2,7 @@ import { Lock } from "lucide-react";
 import { AppProvider, useApp } from "./store";
 import { Sidebar, Topbar, Toast } from "./components/Shell";
 import LockScreen from "./components/LockScreen";
+import { Backdrop } from "./components/Fluid";
 import Overview from "./pages/Overview";
 import Timeline from "./pages/Timeline";
 import Applications from "./pages/Applications";
@@ -39,7 +40,7 @@ function LockFlash() {
 }
 
 function Root() {
-  const { info, bootError, route } = useApp();
+  const { info, bootError, route, fluid } = useApp();
   if (bootError) {
     return (
       <div className="boot">
@@ -49,9 +50,11 @@ function Root() {
     );
   }
   if (!info) return <div className="boot"><span className="spin" /></div>;
-  if (!info.unlocked) return (<><LockScreen /><Toast /><LockFlash /></>);
+  if (!info.unlocked) return (<>{fluid && <Backdrop paused />}<LockScreen /><Toast /><LockFlash /></>);
   const Page = PAGES[route.page] || Overview;
   return (
+    <>
+    {fluid && <Backdrop paused={false} />}
     <div className="app">
       <Sidebar />
       <div className="main">
@@ -63,6 +66,7 @@ function Root() {
       <Toast />
       <LockFlash />
     </div>
+    </>
   );
 }
 

@@ -1,10 +1,18 @@
-Hermes beta-0.1, UI build, revision r4 (2026-11-08)
+Hermes v1.1.0 (desktop app 1.1.0 on Hermes core beta-0.1), 2026-11-09
 Contains: Hermes core + desktop app (app/) + CI workflow.
-Compiled by the author on GitHub Actions: NO (never compiled here; check the Actions log).
+Compiled by the author on GitHub Actions: NOT YET (v1.0.0 compiled and ran fine; the changes below are new and untested).
 
-Changes since r3:
-- Fixed compile error in app/src-tauri/src/commands.rs (integrity_info passed Arc<Session> where &Session was expected).
-- Earlier, still in this build: scrolling/sidebar fix, USB-removal auto-lock, author tag NotShanav,
-  hidden clean-slate reset (press-drag the logo on the lock screen to reveal the keyhole), fixed build.yml line 59.
+New in v1.1.0
+- Interface style setting (Settings > Interface style): Modern (the original look, default) or Fluidity.
+  Fluidity = blob backdrop, frosted glass chrome, near-opaque data cards, liquid-glass accents (in-house SVG refraction),
+  fluid motion. Intensity: Full or Subtle. No new npm packages, CSP unchanged, nothing leaves the PC.
+- Zoomable day ribbon (Overview) and lanes (Timeline): scroll to zoom, drag to pan, double-click to reset, fit-to-activity,
+  minimap, seconds-level axis. Lanes now show application names.
+- Layout hardening: long names, titles and numbers truncate or scale inside their boxes instead of breaking the layout.
+- Version labels: app/package.json, Cargo.toml and tauri.conf.json are 1.1.0; the About page shows v1.1.0.
 
-Naming: hermes-<version>-<ui|source>-r<revision>-<date>.zip. Highest revision = latest.
+Since v1.0.0 (= the build that compiled: r4): none other.
+Earlier features still present: scroll/sidebar fix, USB-removal auto-lock, hidden clean-slate reset (drag the logo on the
+lock screen), author tag NotShanav.
+
+Naming: Hermes-v<major>.<minor>.<patch>.zip

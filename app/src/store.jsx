@@ -61,6 +61,8 @@ export function AppProvider({ children }) {
       const t = info.prefs.theme;
       const dark = t === "system" ? window.matchMedia("(prefers-color-scheme: dark)").matches : t !== "light";
       document.documentElement.dataset.theme = dark ? "dark" : "light";
+      document.documentElement.dataset.ui = info.prefs.ui_style || "modern";
+      document.documentElement.dataset.effects = info.prefs.effects || "full";
     };
     apply();
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
@@ -70,6 +72,13 @@ export function AppProvider({ children }) {
 
   const themePref = info ? info.prefs.theme : "dark";
   const dark = themePref === "system" ? window.matchMedia("(prefers-color-scheme: dark)").matches : themePref !== "light";
+
+  // Interface style: "modern" is the original look. "fluidity" adds glass, blobs and fluid motion.
+  const ui = info ? info.prefs.ui_style || "modern" : "modern";
+  const fx = info ? info.prefs.effects || "full" : "full";
+  const reduceTransparency = typeof window !== "undefined" && !!window.matchMedia && window.matchMedia("(prefers-reduced-transparency: reduce)").matches;
+  const fluid = ui === "fluidity";
+  const liquid = fluid && fx === "full" && !reduceTransparency; // true refraction only in Full
 
   const offset = info ? info.offset_minutes : 0;
   const range = useMemo(() => makeRange(rangeKey, offset, custom), [rangeKey, offset, custom]);
@@ -155,7 +164,7 @@ export function AppProvider({ children }) {
   );
 
   const value = {
-    info, bootError, refreshInfo, offset, dark, unlocked,
+    info, bootError, refreshInfo, offset, dark, unlocked, ui, fx, fluid, liquid,
     route, go,
     rangeKey, setRangeKey, custom, setCustom, range, prevRange,
     rev, bump: () => setRev((r) => r + 1),

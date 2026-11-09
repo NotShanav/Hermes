@@ -2,7 +2,8 @@ import { useCallback, useMemo, useState } from "react";
 import { api } from "../api";
 import { useApp, useAsync, useCategoryMap } from "../store";
 import { Card, Empty, ErrorNote, Loading, Pill, Segmented, Stat } from "../components/ui";
-import { BarList, Donut, HourBars, Ribbon } from "../components/charts";
+import { BarList, Donut, HourBars } from "../components/charts";
+import { Ribbon } from "../components/zoomcharts";
 import { DAY, MIN, ago, appColor, cleanAppName, cleanTitle, delta, dayStart, fmtClock, fmtDate, fmtDur, fmtHours, fmtNum, rangeLabel } from "../util";
 import { STATE_LABEL, STATE_TONE, useRecorder } from "../hooks";
 

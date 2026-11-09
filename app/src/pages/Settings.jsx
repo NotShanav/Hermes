@@ -25,6 +25,36 @@ export default function SettingsPage() {
         </div>
       </Card>
 
+      <Card title="Interface style">
+        <div className="setting">
+          <div>
+            <b>Style</b>
+            <p className="muted small">
+              {p.ui_style === "fluidity"
+                ? "Fluidity: frosted glass, slowly drifting colour blobs, liquid-glass highlights and fluid motion."
+                : "Modern: clean solid panels. The original look."}
+            </p>
+          </div>
+          <Segmented value={p.ui_style || "modern"} onChange={(v) => save({ ui_style: v })} options={[
+            { value: "modern", label: "Modern" }, { value: "fluidity", label: "Fluidity" },
+          ]} />
+        </div>
+        {p.ui_style === "fluidity" && (
+          <div className="setting">
+            <div>
+              <b>Intensity</b>
+              <p className="muted small">Full adds five blobs and liquid-glass refraction. Subtle keeps frosted glass and two quiet blobs, and is lighter on the graphics card.</p>
+            </div>
+            <Segmented value={p.effects || "full"} onChange={(v) => save({ effects: v })} options={[
+              { value: "full", label: "Full" }, { value: "subtle", label: "Subtle" },
+            ]} />
+          </div>
+        )}
+        {p.ui_style === "fluidity" && (
+          <p className="muted small fx-note">Animation pauses when the window is in the background or the archive is locked. Windows' reduced-motion and reduced-transparency settings are respected.</p>
+        )}
+      </Card>
+
       <Card title="Time">
         <div className="setting">
           <div><b>Time zone</b><p className="muted small">Days start and end at midnight in this zone. Currently UTC{info.offset_minutes >= 0 ? "+" : "-"}{Math.floor(Math.abs(info.offset_minutes) / 60)}:{String(Math.abs(info.offset_minutes) % 60).padStart(2, "0")}.</p></div>
@@ -50,7 +80,7 @@ export default function SettingsPage() {
         <div className="about">
           <img src={logo} width="64" height="64" alt="" />
           <dl className="kv-list grow">
-            <KV k="Hermes app" v={`Beta ${info.version}`} />
+            <KV k="Hermes app" v={`v${info.version}`} />
             <KV k="Author" v="NotShanav" />
             <KV k="Data folder" v={info.data_dir} mono />
             <KV k="Preferences file" v="hermes-app.json in the data folder (no archive content)" />

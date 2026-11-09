@@ -32,11 +32,15 @@ pub struct Prefs {
     pub rules: Vec<Rule>,
     pub custom_categories: Vec<CategoryDef>,
     pub sidebar_collapsed: bool,
+    /// modern (the original solid look) | fluidity (glass, blobs, liquid motion)
+    pub ui_style: String,
+    /// Fluidity intensity: full | subtle
+    pub effects: String,
 }
 
 impl Default for Prefs {
     fn default() -> Self {
-        Prefs { theme: "dark".into(), tz_override_minutes: None, auto_lock_minutes: 10, rules: vec![], custom_categories: vec![], sidebar_collapsed: false }
+        Prefs { theme: "dark".into(), tz_override_minutes: None, auto_lock_minutes: 10, rules: vec![], custom_categories: vec![], sidebar_collapsed: false, ui_style: "modern".into(), effects: "full".into() }
     }
 }
 
@@ -128,6 +132,18 @@ mod tests {
         let rules = vec![Rule { pattern: "mygame".into(), category: "games".into() }, Rule { pattern: "chrome".into(), category: "office".into() }];
         assert_eq!(categorize("mygame.exe", &rules), "games");
         assert_eq!(categorize("chrome.exe", &rules), "office", "user rules win over built-in lists");
+    }
+
+    #[test]
+    fn old_prefs_files_without_the_style_fields_still_load() {
+        let d = std::env::temp_dir().join(format!("hermes-prefs-old-{}", std::process::id()));
+        std::fs::create_dir_all(&d).unwrap();
+        let p = d.join("hermes-app.json");
+        std::fs::write(&p, r#"{"theme":"light","auto_lock_minutes":5}"#).unwrap();
+        let x = Prefs::load(&p);
+        assert_eq!((x.theme.as_str(), x.auto_lock_minutes), ("light", 5));
+        assert_eq!((x.ui_style.as_str(), x.effects.as_str()), ("modern", "full"));
+        let _ = std::fs::remove_dir_all(d);
     }
 
     #[test]

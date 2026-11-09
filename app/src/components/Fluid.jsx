@@ -1,0 +1,191 @@
+// Fluidity mode building blocks. Everything here is local and dependency-free: CSS blobs, an in-house SVG
+// liquid-glass filter whose displacement map is a data: URL (allowed by the CSP), and small motion helpers.
+// None of it renders in Modern mode.
+
+import { useEffect, useRef, useState } from "react";
+import { useApp } from "../store";
+
+/** Fixed full-window field of slowly drifting colour blobs behind the whole app. Paused when the window is hidden,
+ *  unfocused or the archive is locked, so an always-open app costs almost nothing while idle. */
+export function Backdrop({ paused }) {
+  useEffect(() => {
+    const root = document.documentElement;
+    const update = () => {
+      const away = document.hidden || !document.hasFocus();
+      root.dataset.paused = away || paused ? "1" : "0";
+    };
+    update();
+    document.addEventListener("visibilitychange", update);
+    window.addEventListener("focus", update);
+    window.addEventListener("blur", update);
+    return () => {
+      document.removeEventListener("visibilitychange", update);
+      window.removeEventListener("focus", update);
+      window.removeEventListener("blur", update);
+      delete root.dataset.paused;
+    };
+  }, [paused]);
+  return (
+    <div className="backdrop" aria-hidden="true">
+      <i className="blob b1" />
+      <i className="blob b2" />
+      <i className="blob b3" />
+      <i className="blob b4" />
+      <i className="blob b5" />
+      <i className="backdrop-grain" />
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------- liquid glass
+
+const mapCache = new Map();
+
+/** Displacement map for a rounded rectangle: neutral (128,128) in the middle, and along the rim a vector pointing
+ *  inward that fades with distance from the edge (a convex bevel). Red = x, green = y, as feDisplacementMap expects. */
+function makeMap(w, h, radius, bezel) {
+  const key = `${w}x${h}r${radius}b${bezel}`;
+  const hit = mapCache.get(key);
+  if (hit) return hit;
+  const c = document.createElement("canvas");
+  c.width = w;
+  c.height = h;
+  const g = c.getContext("2d");
+  const img = g.createImageData(w, h);
+  const hx = w / 2;
+  const hy = h / 2;
+  const r = Math.min(radius, hx, hy);
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const px = x + 0.5 - hx;
+      const py = y + 0.5 - hy;
+      const qx = Math.abs(px) - (hx - r);
+      const qy = Math.abs(py) - (hy - r);
+      const ox = Math.max(qx, 0);
+      const oy = Math.max(qy, 0);
+      const len = Math.hypot(ox, oy);
+      const sdf = len + Math.min(Math.max(qx, qy), 0) - r; // negative inside the shape
+      const inside = -sdf;
+      let dx = 0;
+      let dy = 0;
+      if (inside > 0 && inside < bezel) {
+        const t = inside / bezel;
+        const strength = (1 - t) * (1 - t); // strongest at the rim
+        let nx;
+        let ny; // outward normal
+        if (len > 0) {
+          nx = (px < 0 ? -1 : 1) * (ox / len);
+          ny = (py < 0 ? -1 : 1) * (oy / len);
+        } else if (qx > qy) {
+          nx = px < 0 ? -1 : 1;
+          ny = 0;
+        } else {
+          nx = 0;
+          ny = py < 0 ? -1 : 1;
+        }
+        dx = -nx * strength; // inward
+        dy = -ny * strength;
+      }
+      const i = (y * w + x) * 4;
+      img.data[i] = Math.round(128 + 127 * dx);
+      img.data[i + 1] = Math.round(128 + 127 * dy);
+      img.data[i + 2] = 128;
+      img.data[i + 3] = 255;
+    }
+  }
+  g.putImageData(img, 0, 0);
+  const url = c.toDataURL("image/png");
+  if (mapCache.size > 40) mapCache.clear();
+  mapCache.set(key, url);
+  return url;
+}
+
+let filterSeq = 0;
+
+/** A lens layer for a small, fixed-size glass element (give the parent `position: relative`). It refracts what is
+ *  behind it through an SVG filter sized to the element. Renders nothing unless Fluidity is on at Full intensity. */
+export function LiquidLayer({ radius = 12, bezel = 12, depth = 7 }) {
+  const { liquid } = useApp();
+  const ref = useRef(null);
+  const id = useRef(`hm-lens-${++filterSeq}`);
+  const [box, setBox] = useState(null);
+
+  useEffect(() => {
+    if (!liquid) return undefined;
+    const el = ref.current;
+    if (!el) return undefined;
+    const measure = () => setBox({ w: Math.round(el.offsetWidth), h: Math.round(el.offsetHeight) });
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [liquid]);
+
+  if (!liquid) return null;
+  const ready = box && box.w > 8 && box.h > 8;
+  const map = ready ? makeMap(box.w, box.h, radius, bezel) : null;
+  const bf = ready ? `url(#${id.current}) blur(0.6px) saturate(1.45) brightness(1.08)` : undefined;
+  return (
+    <>
+      {ready && (
+        <svg className="liquid-defs" width="0" height="0" aria-hidden="true" focusable="false">
+          <defs>
+            <filter id={id.current} x="0" y="0" width={box.w} height={box.h} filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
+              <feImage href={map} x="0" y="0" width={box.w} height={box.h} preserveAspectRatio="none" result="map" />
+              <feDisplacementMap in="SourceGraphic" in2="map" scale={depth * 2} xChannelSelector="R" yChannelSelector="G" />
+            </filter>
+          </defs>
+        </svg>
+      )}
+      <span ref={ref} className="liquid-layer" style={ready ? { backdropFilter: bf, WebkitBackdropFilter: bf, borderRadius: radius } : { borderRadius: radius }} />
+    </>
+  );
+}
+
+// ---------------------------------------------------------------- lock-screen delight
+
+/** Three soft shapes that melt into each other behind the logo (gooey metaball filter, small area only). */
+export function GooHalo() {
+  const { liquid } = useApp();
+  if (!liquid) return null;
+  return (
+    <>
+      <svg className="liquid-defs" width="0" height="0" aria-hidden="true" focusable="false">
+        <defs>
+          <filter id="hm-goo" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="9" result="b" />
+            <feColorMatrix in="b" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 20 -9" />
+          </filter>
+        </defs>
+      </svg>
+      <div className="goo-halo" aria-hidden="true">
+        <i className="g1" />
+        <i className="g2" />
+        <i className="g3" />
+      </div>
+    </>
+  );
+}
+
+/** Lets a single element lean toward the cursor, with a springy release. Used on the unlock button only. */
+export function Elastic({ children }) {
+  const { liquid } = useApp();
+  const ref = useRef(null);
+  if (!liquid) return children;
+  const move = (e) => {
+    const el = ref.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const dx = (e.clientX - (r.left + r.width / 2)) / r.width;
+    const dy = (e.clientY - (r.top + r.height / 2)) / r.height;
+    el.style.transform = `translate(${dx * 10}px, ${dy * 8}px) scale(1.035, ${1.035 - Math.abs(dx) * 0.03})`;
+  };
+  const leave = () => {
+    if (ref.current) ref.current.style.transform = "";
+  };
+  return (
+    <span ref={ref} className="elastic" onPointerMove={move} onPointerLeave={leave}>
+      {children}
+    </span>
+  );
+}
