@@ -1,18 +1,18 @@
-Hermes v1.1.0 (desktop app 1.1.0 on Hermes core beta-0.1), 2026-11-09
+Hermes v1.2.0 (desktop app 1.2.0 on Hermes core beta-0.1), 2026-11-09
 Contains: Hermes core + desktop app (app/) + CI workflow.
-Compiled by the author on GitHub Actions: NOT YET (v1.0.0 compiled and ran fine; the changes below are new and untested).
+Compiled by the author on GitHub Actions: NOT YET for this version (v1.1.0 compiled and ran; the changes below are new and untested).
 
-New in v1.1.0
-- Interface style setting (Settings > Interface style): Modern (the original look, default) or Fluidity.
-  Fluidity = blob backdrop, frosted glass chrome, near-opaque data cards, liquid-glass accents (in-house SVG refraction),
-  fluid motion. Intensity: Full or Subtle. No new npm packages, CSP unchanged, nothing leaves the PC.
-- Zoomable day ribbon (Overview) and lanes (Timeline): scroll to zoom, drag to pan, double-click to reset, fit-to-activity,
-  minimap, seconds-level axis. Lanes now show application names.
-- Layout hardening: long names, titles and numbers truncate or scale inside their boxes instead of breaking the layout.
-- Version labels: app/package.json, Cargo.toml and tauri.conf.json are 1.1.0; the About page shows v1.1.0.
+New in v1.2.0 (Fluidity polish, Modern is untouched)
+- Vivid backdrop: brighter glowing blobs (violet, magenta, cyan, blue), a coloured base gradient, soft floating glass orbs,
+  fine film grain. Larger, livelier drift.
+- Translucent glass cards with a light sheen and a bright gradient edge (cards ~70% opaque; text contrast kept).
+- Stronger frosted chrome: more transparency, saturation and brightness behind sidebar, top bar, popovers, drawer, dialogs, toasts.
+- Liquid glass v2: red/green/blue are refracted separately for colour fringing at the rim; stronger bend; a two-sided bright rim;
+  a highlight that follows the cursor. Now also on the top bar, popovers, toasts and every primary button (plus the nav pill,
+  segmented thumb, recording pill, range button and Unlock button from v1.1.0).
+- Intensity: Full = all of the above; Subtle = frosted glass and two quiet blobs, no orbs, no refraction (lightest on the GPU).
 
-Since v1.0.0 (= the build that compiled: r4): none other.
-Earlier features still present: scroll/sidebar fix, USB-removal auto-lock, hidden clean-slate reset (drag the logo on the
-lock screen), author tag NotShanav.
+Unchanged from v1.1.0: Modern/Fluidity setting, zoomable ribbon and lanes, layout hardening, fluid motion.
+Earlier features still present: scroll/sidebar fix, USB-removal auto-lock, hidden clean-slate reset, author tag NotShanav.
 
 Naming: Hermes-v<major>.<minor>.<patch>.zip

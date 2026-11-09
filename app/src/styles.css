@@ -648,3 +648,156 @@ button.cal-cell:hover { outline: 2px solid var(--text-2); outline-offset: 0; }
   [data-ui="fluidity"] .modal, [data-ui="fluidity"] .toast, [data-ui="fluidity"] .keybox, [data-ui="fluidity"] .lock-rec { -webkit-backdrop-filter: none; backdrop-filter: none; }
 }
 .fx-note { margin-top: 12px; }
+
+/* ================================================================ FLUIDITY v2: richer glass
+   Overrides the first Fluidity pass above (same selectors, later in the file). Modern is untouched. */
+[data-ui="fluidity"] {
+  --fl-base: #05030c;
+  --blob-op: 0.95;
+  --blob-1: #5a2cff;
+  --blob-2: #a45bff;
+  --blob-3: #ff5ccf;
+  --blob-4: #25c3ff;
+  --blob-5: #6577ff;
+  --glass-tint: rgba(20, 14, 44, 0.40);
+  --glass-tint-2: rgba(26, 18, 56, 0.62);
+  --glass-rim: rgba(255, 255, 255, 0.26);
+  --glass-rim-soft: rgba(255, 255, 255, 0.09);
+  --glass-blur: 26px;
+  --card-alpha: 70%;
+}
+[data-ui="fluidity"][data-theme="light"] {
+  --fl-base: #e6e0fb;
+  --blob-op: 0.8;
+  --blob-1: #8d6bff;
+  --blob-2: #c59bff;
+  --blob-3: #ff9fdc;
+  --blob-4: #7fd0ff;
+  --blob-5: #a9b5ff;
+  --glass-tint: rgba(255, 255, 255, 0.46);
+  --glass-tint-2: rgba(255, 255, 255, 0.74);
+  --glass-rim: rgba(255, 255, 255, 0.95);
+  --glass-rim-soft: rgba(110, 90, 190, 0.18);
+  --card-alpha: 74%;
+}
+
+/* a coloured base so even the empty corners glow, then luminous blobs on top */
+[data-ui="fluidity"] body {
+  background:
+    radial-gradient(1100px 700px at 8% -8%, rgba(90, 44, 255, 0.55), transparent 62%),
+    radial-gradient(900px 640px at 100% 28%, rgba(164, 91, 255, 0.38), transparent 60%),
+    radial-gradient(800px 600px at 40% 110%, rgba(255, 92, 207, 0.28), transparent 60%),
+    var(--fl-base);
+}
+[data-ui="fluidity"][data-theme="light"] body {
+  background:
+    radial-gradient(1100px 700px at 8% -8%, rgba(141, 107, 255, 0.45), transparent 62%),
+    radial-gradient(900px 640px at 100% 28%, rgba(197, 155, 255, 0.4), transparent 60%),
+    radial-gradient(800px 600px at 40% 110%, rgba(255, 159, 220, 0.35), transparent 60%),
+    var(--fl-base);
+}
+.blob { filter: blur(58px) saturate(1.25); mix-blend-mode: screen; }
+[data-theme="light"] .blob { mix-blend-mode: multiply; }
+.blob.b1 { background: radial-gradient(circle at 40% 40%, var(--blob-1) 0%, transparent 70%); }
+.blob.b2 { background: radial-gradient(circle at 50% 50%, var(--blob-2) 0%, transparent 68%); }
+.blob.b3 { background: radial-gradient(circle at 50% 50%, var(--blob-3) 0%, transparent 68%); opacity: calc(var(--blob-op) * 0.78); }
+.blob.b4 { background: radial-gradient(circle at 50% 50%, var(--blob-4) 0%, transparent 68%); opacity: calc(var(--blob-op) * 0.7); }
+.blob.b5 { background: radial-gradient(circle at 50% 50%, var(--blob-5) 0%, transparent 68%); opacity: calc(var(--blob-op) * 0.62); }
+@keyframes blob-a { from { transform: translate3d(0, 0, 0) scale(1); } to { transform: translate3d(14vmax, 9vmax, 0) scale(1.2); } }
+@keyframes blob-b { from { transform: translate3d(0, 0, 0) scale(1.08); } to { transform: translate3d(-15vmax, 8vmax, 0) scale(0.9); } }
+@keyframes blob-c { from { transform: translate3d(0, 0, 0) scale(0.94); } to { transform: translate3d(11vmax, -13vmax, 0) scale(1.18); } }
+.blob.b1 { animation-duration: 34s; } .blob.b2 { animation-duration: 40s; } .blob.b3 { animation-duration: 46s; }
+.blob.b4 { animation-duration: 52s; } .blob.b5 { animation-duration: 58s; }
+[data-effects="subtle"] .blob { opacity: calc(var(--blob-op) * 0.62); animation-duration: 80s; }
+
+/* soft glass orbs: give the frosted surfaces something to blur and the lenses something to bend */
+.orb { position: absolute; border-radius: 50%; filter: blur(7px); will-change: transform; opacity: 0.8; animation: orb-float 38s ease-in-out infinite alternate;
+  background:
+    radial-gradient(circle at 30% 24%, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0) 30%),
+    radial-gradient(circle at 62% 68%, rgba(0, 0, 0, 0.35) 0%, rgba(0, 0, 0, 0) 55%),
+    radial-gradient(circle at 50% 50%, var(--blob-2), var(--blob-1) 80%); }
+.orb.o1 { width: 21vmin; height: 21vmin; left: 3vw; bottom: 12vh; }
+.orb.o2 { width: 14vmin; height: 14vmin; right: 7vw; top: 14vh; animation-duration: 46s; animation-delay: -12s; background:
+    radial-gradient(circle at 30% 24%, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0) 30%),
+    radial-gradient(circle at 62% 68%, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0) 55%),
+    radial-gradient(circle at 50% 50%, var(--blob-3), var(--blob-2) 85%); }
+.orb.o3 { width: 10vmin; height: 10vmin; left: 44vw; bottom: 5vh; animation-duration: 52s; animation-delay: -24s; opacity: 0.7; background:
+    radial-gradient(circle at 30% 24%, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0) 30%),
+    radial-gradient(circle at 50% 50%, var(--blob-4), var(--blob-5) 85%); }
+@keyframes orb-float { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(5vmax, -7vmax, 0); } }
+[data-paused="1"] .orb { animation-play-state: paused; }
+[data-effects="subtle"] .orb { display: none; }
+
+/* film grain keeps big gradients from looking flat and digital */
+.backdrop-noise { position: absolute; inset: 0; opacity: 0.07; mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .6 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"); }
+
+/* frosted chrome: more transparent, more saturation, brighter edge */
+[data-ui="fluidity"] .side {
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(190%) brightness(1.06); backdrop-filter: blur(var(--glass-blur)) saturate(190%) brightness(1.06);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0) 30%), var(--glass-tint);
+}
+[data-ui="fluidity"] .top {
+  position: relative;
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(190%) brightness(1.06); backdrop-filter: blur(var(--glass-blur)) saturate(190%) brightness(1.06);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.02) 50%, rgba(255, 255, 255, 0.07)), var(--glass-tint);
+  box-shadow: inset 0 1px 0 var(--glass-rim), 0 10px 30px rgba(0, 0, 0, 0.25);
+}
+[data-ui="fluidity"] .popover, [data-ui="fluidity"] .drawer, [data-ui="fluidity"] .modal, [data-ui="fluidity"] .toast {
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(190%) brightness(1.05); backdrop-filter: blur(var(--glass-blur)) saturate(190%) brightness(1.05);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.015) 55%), var(--glass-tint-2);
+}
+[data-ui="fluidity"] .side .nav-label, [data-ui="fluidity"] .brand-name, [data-ui="fluidity"] .top h1 { text-shadow: 0 1px 10px rgba(0, 0, 0, 0.35); }
+[data-theme="light"][data-ui="fluidity"] .side .nav-label, [data-theme="light"][data-ui="fluidity"] .brand-name, [data-theme="light"][data-ui="fluidity"] .top h1 { text-shadow: none; }
+
+/* data cards: translucent glass with a sheen and a bright, gradient edge (no blur: cheap, and the blobs are already soft) */
+[data-ui="fluidity"] .card, [data-ui="fluidity"] .stat, [data-ui="fluidity"] .hero {
+  position: relative; border-color: transparent;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0) 42%), color-mix(in srgb, var(--panel) var(--card-alpha), transparent);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.28);
+}
+[data-ui="fluidity"][data-theme="light"] .card, [data-ui="fluidity"][data-theme="light"] .stat, [data-ui="fluidity"][data-theme="light"] .hero { box-shadow: 0 14px 34px rgba(70, 50, 140, 0.16); }
+[data-ui="fluidity"] .card::before, [data-ui="fluidity"] .stat::before, [data-ui="fluidity"] .hero::before {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1px; pointer-events: none; z-index: 1;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.06) 38%, rgba(255, 255, 255, 0.02) 62%, rgba(255, 255, 255, 0.24));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+}
+[data-ui="fluidity"][data-theme="light"] .card::before, [data-ui="fluidity"][data-theme="light"] .stat::before, [data-ui="fluidity"][data-theme="light"] .hero::before {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 1), rgba(110, 90, 190, 0.12) 40%, rgba(110, 90, 190, 0.08) 62%, rgba(255, 255, 255, 0.8));
+}
+[data-ui="fluidity"] .card.hero, [data-ui="fluidity"] .hero { border-radius: 22px; }
+[data-ui="fluidity"] .table-scroll { border-radius: 14px; }
+[data-ui="fluidity"] .tbl th { background: color-mix(in srgb, var(--panel) 92%, transparent); }
+[data-ui="fluidity"] .keybox, [data-ui="fluidity"] .lock-rec { background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.01)), var(--glass-tint-2); }
+
+/* richer accents: vivid pill and thumb */
+.nav-pill { background: linear-gradient(135deg, rgba(164, 91, 255, 0.42), rgba(90, 44, 255, 0.2)); box-shadow: inset 0 0 0 1px rgba(214, 190, 255, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 6px 20px rgba(90, 44, 255, 0.35); }
+.seg-thumb { background: linear-gradient(145deg, rgba(164, 91, 255, 0.45), rgba(90, 44, 255, 0.2)); box-shadow: inset 0 0 0 1px rgba(214, 190, 255, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 4px 14px rgba(90, 44, 255, 0.3); }
+[data-ui="fluidity"] .btn.primary { background: linear-gradient(135deg, #b48cff, #6a3cff); border-color: rgba(255, 255, 255, 0.35); box-shadow: 0 8px 24px rgba(106, 60, 255, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.5); }
+
+/* liquid layer v2: brighter two-sided rim, cursor-following highlight, calmer wash on large surfaces */
+.liquid-layer {
+  background: linear-gradient(150deg, rgba(255, 255, 255, 0.26), rgba(255, 255, 255, 0.04) 50%, rgba(255, 255, 255, 0.14));
+  box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, 0.7), inset 0 -1px 0 rgba(255, 255, 255, 0.28), inset 0 0 0 1px rgba(255, 255, 255, 0.2), inset 0 -10px 16px -10px rgba(255, 255, 255, 0.24), 0 8px 24px rgba(8, 4, 30, 0.35);
+  overflow: hidden;
+}
+.liquid-layer::before { content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1.2px; pointer-events: none;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.05) 36%, rgba(255, 255, 255, 0.04) 64%, rgba(255, 255, 255, 0.7));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0); }
+.liquid-layer::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  background: radial-gradient(circle at var(--sx, 26%) var(--sy, 0%), rgba(255, 255, 255, 0.5), transparent 56%);
+  opacity: calc(0.5 + 0.5 * var(--sa, 0)); transition: opacity 0.25s ease; }
+.liquid-layer.soft { background: linear-gradient(150deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.01) 50%, rgba(255, 255, 255, 0.06)); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), inset 0 -1px 0 rgba(255, 255, 255, 0.16), inset 0 0 0 1px rgba(255, 255, 255, 0.12); }
+.liquid-layer.soft::after { background: radial-gradient(circle at var(--sx, 26%) var(--sy, 0%), rgba(255, 255, 255, 0.3), transparent 50%); }
+[data-theme="light"] .liquid-layer { background: linear-gradient(150deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.08) 50%, rgba(255, 255, 255, 0.3)); box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, 1), inset 0 0 0 1px rgba(110, 90, 190, 0.2), 0 8px 24px rgba(70, 50, 140, 0.2); }
+.btn.primary, .btn.glass-btn { position: relative; }
+.toast, .popover, .top { position: relative; }
+.toast { position: fixed; }
+.popover { position: absolute; }
+
+@media (prefers-reduced-transparency: reduce) {
+  [data-ui="fluidity"] .card, [data-ui="fluidity"] .stat, [data-ui="fluidity"] .hero { background: var(--panel); }
+  .orb, .backdrop-noise { display: none; }
+}

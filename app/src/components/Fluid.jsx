@@ -32,7 +32,11 @@ export function Backdrop({ paused }) {
       <i className="blob b3" />
       <i className="blob b4" />
       <i className="blob b5" />
+      <i className="orb o1" />
+      <i className="orb o2" />
+      <i className="orb o3" />
       <i className="backdrop-grain" />
+      <i className="backdrop-noise" />
     </div>
   );
 }
@@ -104,7 +108,7 @@ let filterSeq = 0;
 
 /** A lens layer for a small, fixed-size glass element (give the parent `position: relative`). It refracts what is
  *  behind it through an SVG filter sized to the element. Renders nothing unless Fluidity is on at Full intensity. */
-export function LiquidLayer({ radius = 12, bezel = 12, depth = 7 }) {
+export function LiquidLayer({ radius = 12, bezel = 12, depth = 7, chroma = 0.16, soft = false }) {
   const { liquid } = useApp();
   const ref = useRef(null);
   const id = useRef(`hm-lens-${++filterSeq}`);
@@ -118,13 +122,33 @@ export function LiquidLayer({ radius = 12, bezel = 12, depth = 7 }) {
     measure();
     const ro = new ResizeObserver(measure);
     ro.observe(el);
-    return () => ro.disconnect();
+    // A highlight that follows the cursor across the glass.
+    const host = el.parentElement;
+    const move = (e) => {
+      const r = host.getBoundingClientRect();
+      el.style.setProperty("--sx", `${((e.clientX - r.left) / Math.max(1, r.width)) * 100}%`);
+      el.style.setProperty("--sy", `${((e.clientY - r.top) / Math.max(1, r.height)) * 100}%`);
+      el.style.setProperty("--sa", "1");
+    };
+    const leave = () => el.style.setProperty("--sa", "0");
+    if (host) {
+      host.addEventListener("pointermove", move);
+      host.addEventListener("pointerleave", leave);
+    }
+    return () => {
+      ro.disconnect();
+      if (host) {
+        host.removeEventListener("pointermove", move);
+        host.removeEventListener("pointerleave", leave);
+      }
+    };
   }, [liquid]);
 
   if (!liquid) return null;
   const ready = box && box.w > 8 && box.h > 8;
   const map = ready ? makeMap(box.w, box.h, radius, bezel) : null;
-  const bf = ready ? `url(#${id.current}) blur(0.6px) saturate(1.45) brightness(1.08)` : undefined;
+  const S = depth * 2.7;
+  const bf = ready ? `url(#${id.current}) blur(0.5px) saturate(1.75) brightness(1.1) contrast(1.04)` : undefined;
   return (
     <>
       {ready && (
@@ -132,12 +156,20 @@ export function LiquidLayer({ radius = 12, bezel = 12, depth = 7 }) {
           <defs>
             <filter id={id.current} x="0" y="0" width={box.w} height={box.h} filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
               <feImage href={map} x="0" y="0" width={box.w} height={box.h} preserveAspectRatio="none" result="map" />
-              <feDisplacementMap in="SourceGraphic" in2="map" scale={depth * 2} xChannelSelector="R" yChannelSelector="G" />
+              {/* Red, green and blue are refracted by slightly different amounts, then recombined: colour fringing at the rim. */}
+              <feDisplacementMap in="SourceGraphic" in2="map" scale={S * (1 - chroma)} xChannelSelector="R" yChannelSelector="G" result="dr" />
+              <feColorMatrix in="dr" type="matrix" values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0" result="r" />
+              <feDisplacementMap in="SourceGraphic" in2="map" scale={S} xChannelSelector="R" yChannelSelector="G" result="dg" />
+              <feColorMatrix in="dg" type="matrix" values="0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0" result="g" />
+              <feDisplacementMap in="SourceGraphic" in2="map" scale={S * (1 + chroma)} xChannelSelector="R" yChannelSelector="G" result="db" />
+              <feColorMatrix in="db" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0" result="b" />
+              <feBlend in="r" in2="g" mode="screen" result="rg" />
+              <feBlend in="rg" in2="b" mode="screen" />
             </filter>
           </defs>
         </svg>
       )}
-      <span ref={ref} className="liquid-layer" style={ready ? { backdropFilter: bf, WebkitBackdropFilter: bf, borderRadius: radius } : { borderRadius: radius }} />
+      <span ref={ref} className={`liquid-layer${soft ? " soft" : ""}`} style={ready ? { backdropFilter: bf, WebkitBackdropFilter: bf, borderRadius: radius } : { borderRadius: radius }} />
     </>
   );
 }

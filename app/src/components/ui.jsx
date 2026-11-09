@@ -88,6 +88,7 @@ export function Button({ children, variant = "default", small, icon: Icon, class
     <button {...rest} className={`btn ${variant} ${small ? "small" : ""} ${className}`}>
       {Icon && <Icon size={small ? 14 : 16} strokeWidth={2} />}
       {children}
+      {variant === "primary" && <LiquidLayer radius={small ? 8 : 10} bezel={small ? 8 : 10} depth={small ? 5 : 6} />}
     </button>
   );
 }

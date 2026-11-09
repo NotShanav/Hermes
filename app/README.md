@@ -89,11 +89,12 @@ unless you still have its keys. Your app preferences, category rules and recorde
 
 Settings, Interface style. **Modern** is the original solid look and is the default. **Fluidity** adds:
 
-* a living backdrop of slowly drifting colour blobs (pure CSS, no WebGL, no extra packages);
+* a living backdrop of luminous colour blobs, soft glass orbs and film grain (pure CSS, no WebGL, no extra packages);
 * frosted-glass chrome: sidebar, top bar, popovers, drawer, modal, toast and the lock screen;
 * near-opaque data cards, so charts and category colours keep their contrast;
-* liquid-glass accents with real refraction (an in-house SVG displacement filter whose map is a `data:` URL): the
-  active-nav pill, the segmented-control thumb, the recording pill, the date-range button and the Unlock button;
+* liquid-glass with real refraction and red/green/blue colour fringing (an in-house SVG displacement filter whose map is a
+  `data:` URL) and a highlight that follows the cursor: nav pill, segmented thumb, recording pill, date-range button, top bar,
+  popovers, toasts and every primary button;
 * fluid motion: the nav pill and segmented thumb glide between options, pages lift in, stat values roll, the drawer
   and dialogs spring in, and the Unlock button leans toward the cursor.
 

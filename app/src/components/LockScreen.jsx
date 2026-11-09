@@ -7,7 +7,7 @@ import { api } from "../api";
 import { useApp } from "../store";
 import { Button, ErrorNote, Pill } from "./ui";
 import ResetWizard from "./ResetWizard";
-import { Elastic, GooHalo, LiquidLayer } from "./Fluid";
+import { Elastic, GooHalo } from "./Fluid";
 import { STATE_LABEL, STATE_TONE, useRecorder } from "../hooks";
 import { ago, fmtNum } from "../util";
 
@@ -240,7 +240,6 @@ export default function LockScreen() {
             <Elastic>
               <Button variant="primary" className="glass-btn" icon={KeyRound} disabled={busy || files.length === 0} onClick={() => unlock(files)}>
                 {busy ? "Unlocking and verifying" : "Unlock"}
-                <LiquidLayer radius={10} bezel={10} depth={6} />
               </Button>
             </Elastic>
             {busy && <p className="muted small">Decrypting and verifying signatures. Large archives take a moment.</p>}
