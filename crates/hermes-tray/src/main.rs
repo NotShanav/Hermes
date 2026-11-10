@@ -56,6 +56,8 @@ mod app {
     }
 
     pub fn main() -> i32 {
+        // Before any window exists: crisp per-monitor DPI and a theme-aware menu.
+        hermes_tray::ui::init_process();
         match run() {
             Ok(code) => code,
             Err(e) => {

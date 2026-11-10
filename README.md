@@ -7,7 +7,7 @@
 **A private, local, encrypted record of which apps and windows you used, and when.**
 Two keys to read it. Nothing leaves your computer.
 
-`v1.2.1` · Windows 10/11 · Rust + Tauri + React · by **NotShanav**
+`v1.3.0` · Windows 10/11 · Rust + Tauri + React · by **NotShanav**
 
 </div>
 
@@ -60,7 +60,9 @@ names, so treat the archive and any export accordingly.
   reduced-transparency settings.
 
 **Recorder** (`hermes-tray.exe`) — a visible tray icon and an on-screen dot while recording. There is no hidden mode:
-if the indicator cannot be shown, it refuses to record.
+if the indicator cannot be shown, it refuses to record. Its tray menu opens with a coloured status line (click it for
+details), groups the rest into *Pause for…* and *Settings* submenus, follows the Windows light/dark theme, and is drawn
+at full resolution on scaled displays.
 
 **Command line** (`hermes.exe`) — `init`, `start`, `tray`, `view`, `search`, `export`, `check`, `status`, `stop`.
 

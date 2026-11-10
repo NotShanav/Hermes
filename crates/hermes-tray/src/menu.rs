@@ -1,6 +1,7 @@
 //! The tray menu as data. The Windows layer only materialises it, so every label, enabled flag and
 //! check mark is unit-tested without a desktop.
 
+use crate::icon::IconKind;
 use hermes_tracker::CollectionState;
 
 pub mod ids {
@@ -14,31 +15,50 @@ pub mod ids {
     pub const DOT: u32 = 1008;
     pub const OPEN_FOLDER: u32 = 1009;
     pub const OPEN_SETTINGS: u32 = 1010;
+    /// The status line at the top of the menu: clicking it opens the same status dialog as STATUS.
+    pub const STATUS_HEADER: u32 = 1011;
     pub const EXIT: u32 = 1099;
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Item {
-    pub id: u32, // 0 for separators and the informational lines
+    pub id: u32, // 0 for separators, submenus and the informational lines
     pub label: String,
     pub enabled: bool,
     pub checked: bool,
     pub separator: bool,
+    /// Non-empty makes this item a submenu.
+    pub children: Vec<Item>,
+    /// A small coloured status picture shown beside the label (same artwork as the tray icon).
+    pub icon: Option<IconKind>,
 }
 
 impl Item {
     fn action(id: u32, label: &str) -> Item {
-        Item { id, label: label.into(), enabled: true, checked: false, separator: false }
+        Item { id, label: label.into(), enabled: true, checked: false, separator: false, children: Vec::new(), icon: None }
     }
     fn info(label: String) -> Item {
-        Item { id: 0, label, enabled: false, checked: false, separator: false }
+        Item { id: 0, label, enabled: false, checked: false, separator: false, children: Vec::new(), icon: None }
     }
     fn sep() -> Item {
-        Item { id: 0, label: String::new(), enabled: false, checked: false, separator: true }
+        Item { id: 0, label: String::new(), enabled: false, checked: false, separator: true, children: Vec::new(), icon: None }
     }
     fn toggle(id: u32, label: &str, on: bool) -> Item {
         Item { checked: on, ..Item::action(id, label) }
     }
+    fn submenu(label: &str, enabled: bool, children: Vec<Item>) -> Item {
+        Item { enabled, children, ..Item::action(0, label) }
+    }
+}
+
+/// Every item, submenu contents included, in display order.
+pub fn flatten(items: &[Item]) -> Vec<&Item> {
+    let mut out = Vec::new();
+    for i in items {
+        out.push(i);
+        out.extend(flatten(&i.children));
+    }
+    out
 }
 
 pub struct MenuInput {
@@ -72,35 +92,46 @@ pub fn tooltip(s: CollectionState, summary: &str) -> String {
 
 pub fn build(i: &MenuInput) -> Vec<Item> {
     let mut m = Vec::new();
-    let head = match i.state {
-        CollectionState::Recording => "● Hermes is RECORDING".to_string(),
-        CollectionState::Paused => format!("Ⅱ Hermes is PAUSED{}", i.pause_note.as_deref().map(|n| format!(" ({n})")).unwrap_or_default()),
-        other => format!("○ Hermes: {}", state_label(other)),
+    // Status header: a coloured dot, a plain label, and a one-line summary. Clicking the header opens the status dialog.
+    let (head, kind) = match i.state {
+        CollectionState::Recording => ("Recording".to_string(), if i.warnings > 0 { IconKind::Warning } else { IconKind::Recording }),
+        CollectionState::Paused => (format!("Paused{}", i.pause_note.as_deref().map(|n| format!(" ({n})")).unwrap_or_default()), IconKind::Paused),
+        other => (state_label(other).to_string(), IconKind::Inactive),
     };
-    m.push(Item::info(head));
+    m.push(Item { icon: Some(kind), ..Item::action(ids::STATUS_HEADER, &head) });
     m.push(Item::info(i.summary.clone()));
     if i.warnings > 0 {
-        m.push(Item::info(format!("⚠ {} warning(s): open Status for details", i.warnings)));
+        m.push(Item::info(format!("{} warning(s): click the status line for details", i.warnings)));
     }
     m.push(Item::sep());
     let can_pause = i.state == CollectionState::Recording;
     let can_resume = i.state == CollectionState::Paused;
-    m.push(Item { enabled: can_pause || can_resume, ..Item::action(ids::PAUSE_RESUME, if can_resume { "Resume collection" } else { "Pause collection" }) });
-    m.push(Item { enabled: can_pause, ..Item::action(ids::PAUSE_15, "Pause for 15 minutes") });
-    m.push(Item { enabled: can_pause, ..Item::action(ids::PAUSE_60, "Pause for 1 hour") });
+    m.push(Item { enabled: can_pause || can_resume, ..Item::action(ids::PAUSE_RESUME, if can_resume { "Resume recording" } else { "Pause recording" }) });
+    m.push(Item::submenu(
+        "Pause for\u{2026}",
+        can_pause,
+        vec![Item { enabled: can_pause, ..Item::action(ids::PAUSE_15, "15 minutes") }, Item { enabled: can_pause, ..Item::action(ids::PAUSE_60, "1 hour") }],
+    ));
     m.push(Item::sep());
-    m.push(Item::action(ids::STATUS, "Status and security…"));
     if i.viewer_available {
-        m.push(Item::action(ids::OPEN_VIEWER, "Open Hermes Viewer"));
+        m.push(Item::action(ids::OPEN_VIEWER, "Open Hermes"));
     } else {
-        m.push(Item { enabled: false, ..Item::action(ids::OPEN_VIEWER, "Open Hermes Viewer (not installed yet)") });
+        m.push(Item { enabled: false, ..Item::action(ids::OPEN_VIEWER, "Open Hermes (not installed yet)") });
     }
-    m.push(Item::sep());
-    m.push(Item::toggle(ids::AUTOSTART, "Start with Windows", i.autostart));
-    m.push(Item::toggle(ids::START_ON_LAUNCH, "Start recording when Hermes starts", i.start_on_launch));
-    m.push(Item::toggle(ids::DOT, "Show on-screen recording dot", i.dot));
+    m.push(Item::action(ids::STATUS, "Status and security\u{2026}"));
     m.push(Item::action(ids::OPEN_FOLDER, "Open data folder"));
-    m.push(Item::action(ids::OPEN_SETTINGS, "Edit settings and exclusions…"));
+    m.push(Item::sep());
+    m.push(Item::submenu(
+        "Settings",
+        true,
+        vec![
+            Item::toggle(ids::AUTOSTART, "Start with Windows", i.autostart),
+            Item::toggle(ids::START_ON_LAUNCH, "Start recording when Hermes starts", i.start_on_launch),
+            Item::toggle(ids::DOT, "Show on-screen recording dot", i.dot),
+            Item::sep(),
+            Item::action(ids::OPEN_SETTINGS, "Edit exclusions and settings\u{2026}"),
+        ],
+    ));
     m.push(Item::sep());
     m.push(Item::action(ids::EXIT, "Exit Hermes (stops recording)"));
     m

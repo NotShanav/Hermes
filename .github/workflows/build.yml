@@ -8,10 +8,34 @@ on:
 jobs:
   windows:
     runs-on: windows-latest
+    permissions:
+      contents: write   # only used to attach the zip to a GitHub Release when a v* tag is pushed
     env:
       CARGO_TERM_COLOR: always
     steps:
       - uses: actions/checkout@v4
+
+      # One source of truth for the version: app/package.json. The same number must be in Cargo.toml and
+      # tauri.conf.json (the About page reads it from the binary). A mismatch fails the build early.
+      # The package and artifact names are derived from it: Hermes-v<version>-windows-x64.
+      - name: Read the version and name the package
+        id: ver
+        shell: pwsh
+        run: |
+          $v = (Get-Content app/package.json -Raw | ConvertFrom-Json).version
+          $cargo = (Select-String -Path app/src-tauri/Cargo.toml -Pattern '^version\s*=\s*"([^"]+)"' | Select-Object -First 1).Matches[0].Groups[1].Value
+          $tauri = (Get-Content app/src-tauri/tauri.conf.json -Raw | ConvertFrom-Json).version
+          if ($v -ne $cargo -or $v -ne $tauri) {
+            Write-Error "Version mismatch: package.json=$v, Cargo.toml=$cargo, tauri.conf.json=$tauri. Make all three equal."
+            exit 1
+          }
+          if ($env:GITHUB_REF -like 'refs/tags/v*') {
+            $tag = $env:GITHUB_REF.Substring(10)
+            if ($tag -ne "v$v") { Write-Error "Tag $tag does not match the app version v$v."; exit 1 }
+          }
+          "version=$v" >> $env:GITHUB_OUTPUT
+          "PKG=Hermes-v$v-windows-x64" >> $env:GITHUB_ENV
+          Write-Host "Building Hermes v$v"
 
       # windows-latest already ships the MSVC build tools (needed for the bundled SQLite C code).
       - name: Install stable Rust (MSVC target)
@@ -64,20 +88,32 @@ jobs:
       - name: Package
         shell: pwsh
         run: |
-          $out = "hermes-beta-0.1-windows-x64"
+          $root = "dist-pkg"
+          $out = "$root\$env:PKG"
           New-Item -ItemType Directory -Force -Path $out | Out-Null
           $rel = "target\x86_64-pc-windows-msvc\release"
           foreach ($e in "hermes","hermes-tray","hermes-collector","hermes-keytool","hermes-dump") { Copy-Item "$rel\$e.exe" $out }
           # The tray's "Open viewer" menu item launches hermes-viewer.exe from its own folder.
           Copy-Item "app\src-tauri\target\release\hermes-app.exe" "$out\hermes-viewer.exe"
           Copy-Item README.md, BUILD.md $out
+          if (Test-Path VERSION.txt) { Copy-Item VERSION.txt $out }
           Copy-Item docs -Recurse $out\docs
           Copy-Item scripts -Recurse $out\scripts
-          Compress-Archive -Path "$out\*" -DestinationPath "$out.zip" -Force
+          # The zip contains one top-level folder named after the version, so it unpacks cleanly.
+          Compress-Archive -Path $out -DestinationPath "$env:PKG.zip" -Force
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: hermes-beta-0.1-windows-x64
-          path: hermes-beta-0.1-windows-x64.zip
+          name: ${{ env.PKG }}
+          path: dist-pkg
           if-no-files-found: error
+
+      # Push a tag such as v1.2.1 and the zip is also attached to a GitHub Release with the same name.
+      - name: Attach to a GitHub Release (tags only)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Hermes v${{ steps.ver.outputs.version }}
+          files: ${{ env.PKG }}.zip
+          generate_release_notes: true

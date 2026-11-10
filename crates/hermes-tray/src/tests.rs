@@ -7,7 +7,7 @@ fn input(state: S) -> MenuInput {
     MenuInput { state, summary: "12 events · saved 10:00:00 UTC".into(), warnings: 0, autostart: false, start_on_launch: true, dot: true, viewer_available: false, pause_note: None }
 }
 fn find(m: &[Item], id: u32) -> &Item {
-    m.iter().find(|i| i.id == id).unwrap_or_else(|| panic!("menu item {id} missing"))
+    flatten(m).into_iter().find(|i| i.id == id).unwrap_or_else(|| panic!("menu item {id} missing"))
 }
 
 // ---------------------------------------------------------------- settings
@@ -109,9 +109,11 @@ fn icon_choice_follows_state_and_warnings() {
 #[test]
 fn recording_menu_says_recording_and_offers_pause() {
     let m = build(&input(S::Recording));
-    assert!(m[0].label.contains("RECORDING") && !m[0].enabled);
+    assert_eq!(m[0].label, "Recording");
+    assert_eq!((m[0].id, m[0].enabled, m[0].icon), (ids::STATUS_HEADER, true, Some(IconKind::Recording)));
+    assert!(!m[1].enabled && m[1].label.contains("12 events"), "second line is the summary");
     let pr = find(&m, ids::PAUSE_RESUME);
-    assert_eq!((pr.label.as_str(), pr.enabled), ("Pause collection", true));
+    assert_eq!((pr.label.as_str(), pr.enabled), ("Pause recording", true));
     assert!(find(&m, ids::PAUSE_15).enabled && find(&m, ids::PAUSE_60).enabled);
 }
 
@@ -120,10 +122,11 @@ fn paused_menu_offers_resume_and_never_claims_recording() {
     let mut i = input(S::Paused);
     i.pause_note = Some("auto-resumes at 15:20".into());
     let m = build(&i);
-    assert!(m[0].label.contains("PAUSED") && m[0].label.contains("auto-resumes at 15:20"));
-    assert!(!m.iter().any(|x| x.label.contains("RECORDING")));
+    assert!(m[0].label.contains("Paused") && m[0].label.contains("auto-resumes at 15:20"));
+    assert_eq!(m[0].icon, Some(IconKind::Paused));
+    assert!(!m[0].label.to_lowercase().contains("recording"), "the header must not claim recording while paused");
     let pr = find(&m, ids::PAUSE_RESUME);
-    assert_eq!((pr.label.as_str(), pr.enabled), ("Resume collection", true));
+    assert_eq!((pr.label.as_str(), pr.enabled), ("Resume recording", true));
     assert!(!find(&m, ids::PAUSE_15).enabled && !find(&m, ids::PAUSE_60).enabled);
 }
 
@@ -132,6 +135,7 @@ fn system_states_are_described_and_pause_is_unavailable() {
     for s in [S::Locked, S::Asleep, S::Disconnected] {
         let m = build(&input(s));
         assert!(m[0].label.contains("Not recording"), "{:?}", m[0]);
+        assert_eq!(m[0].icon, Some(IconKind::Inactive));
         assert!(!find(&m, ids::PAUSE_RESUME).enabled);
         assert!(find(&m, ids::EXIT).enabled && find(&m, ids::STATUS).enabled);
     }
@@ -145,7 +149,8 @@ fn warnings_checks_viewer_and_exit_are_reflected() {
     i.start_on_launch = false;
     i.dot = false;
     let m = build(&i);
-    assert!(m.iter().any(|x| x.label.contains("2 warning(s)")));
+    assert_eq!(m[0].icon, Some(IconKind::Warning), "a recorder with a problem shows the amber dot");
+    assert!(flatten(&m).iter().any(|x| x.label.contains("2 warning(s)")));
     assert!(find(&m, ids::AUTOSTART).checked && !find(&m, ids::START_ON_LAUNCH).checked && !find(&m, ids::DOT).checked);
     let v = find(&m, ids::OPEN_VIEWER);
     assert!(!v.enabled && v.label.contains("not installed"));
@@ -157,12 +162,25 @@ fn warnings_checks_viewer_and_exit_are_reflected() {
 }
 
 #[test]
+fn menu_is_grouped_into_submenus_and_stays_short() {
+    let m = build(&input(S::Recording));
+    let top_actions = m.iter().filter(|i| !i.separator && !i.label.is_empty()).count();
+    assert!(top_actions <= 10, "top level has {top_actions} entries: group the rest into submenus");
+    let pause_for = m.iter().find(|i| i.label.starts_with("Pause for")).expect("Pause for submenu");
+    assert_eq!(pause_for.children.iter().map(|c| c.id).collect::<Vec<_>>(), vec![ids::PAUSE_15, ids::PAUSE_60]);
+    let settings = m.iter().find(|i| i.label == "Settings").expect("Settings submenu");
+    let sub: Vec<u32> = settings.children.iter().filter(|c| c.id != 0).map(|c| c.id).collect();
+    assert_eq!(sub, vec![ids::AUTOSTART, ids::START_ON_LAUNCH, ids::DOT, ids::OPEN_SETTINGS]);
+    assert!(settings.children.iter().filter(|c| matches!(c.id, ids::AUTOSTART | ids::START_ON_LAUNCH | ids::DOT)).count() == 3);
+}
+
+#[test]
 fn menu_ids_are_unique_and_all_actions_exist() {
     let m = build(&input(S::Recording));
-    let ids_: Vec<u32> = m.iter().filter(|i| i.id != 0).map(|i| i.id).collect();
+    let ids_: Vec<u32> = flatten(&m).iter().filter(|i| i.id != 0).map(|i| i.id).collect();
     let set: std::collections::HashSet<_> = ids_.iter().collect();
     assert_eq!(set.len(), ids_.len());
-    for id in [ids::PAUSE_RESUME, ids::PAUSE_15, ids::PAUSE_60, ids::STATUS, ids::OPEN_VIEWER, ids::AUTOSTART, ids::START_ON_LAUNCH, ids::DOT, ids::OPEN_FOLDER, ids::OPEN_SETTINGS, ids::EXIT] {
+    for id in [ids::STATUS_HEADER, ids::PAUSE_RESUME, ids::PAUSE_15, ids::PAUSE_60, ids::STATUS, ids::OPEN_VIEWER, ids::AUTOSTART, ids::START_ON_LAUNCH, ids::DOT, ids::OPEN_FOLDER, ids::OPEN_SETTINGS, ids::EXIT] {
         assert!(ids_.contains(&id), "{id}");
     }
 }

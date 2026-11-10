@@ -1,25 +1,24 @@
-Hermes v1.2.1 (desktop app 1.2.1 on Hermes core beta-0.1), 2026-11-09
-Contains: Hermes core + desktop app (app/) + CI workflow.
-Compiled by the author on GitHub Actions: NOT YET for this version (v1.2.0 compiled and ran; the changes below are new and untested).
+Hermes v1.3.0 (desktop app 1.3.0 on Hermes core beta-0.1), 2026-11-09
+Contains: Hermes core + desktop app (app/) + CI workflow + repo README.
+Compiled by the author on GitHub Actions: NOT YET for this version (v1.2.1 compiled and ran; the changes below are new and untested).
 
-Fixes in v1.2.1 (Fluidity only; Modern is untouched)
-- Glass rebuilt to follow the Liquid Glass spec: every glass surface keeps a transparent box and gets its frosted layer
-  (translucent fill, blur 18-24px + saturate 165-180%, soft ambient shadow, inner top highlight) as a ::before pseudo-element,
-  plus a 1px gradient refraction rim (::after). Cards, stat tiles, sidebar, top bar, popover, drawer, dialog, toast and the
-  lock-screen panels are all translucent glass now (no solid backgrounds).
-- Root cause of the grey / fringed glass in v1.2.0: lenses were nested inside elements that had their own backdrop blur,
-  so they saw a half-transparent patch. Frost now lives on pseudo-elements, so lenses see the real background.
-- Lenses sit behind text (they washed labels out in light mode) and bend a few pixels instead of ~20; removed from the top bar,
-  popover and toast (they distorted the content inside). Kept on: nav pill, segmented thumb, recording pill, range button,
-  primary buttons.
-- Light mode: pastel mesh background (lavender, rose, sky), white translucent glass, darker rim hairline, quieter orbs.
-- Unlock button: the lean effect measured the element it was moving (feedback loop, bouncy easing) so it slid away from the
-  cursor. Now the outer element is fixed and only an inner element leans 3px, smoothly, springing back on release.
-- Animations audited: glass surfaces animate transform only (opacity would break their blur); hover lift removed from buttons,
-  chips and stat tiles (it made them flicker under the cursor), replaced by a glow; press = scale(0.97).
-- Cosmetic: space above the notice in Settings > Security.
+New in v1.3.0
+- Tray menu modernised (crates/hermes-tray). Recording logic is untouched.
+  * Status header with a coloured dot (same artwork as the tray icon: red recording, grey paused, ring locked/asleep,
+    amber warning). Clicking it opens the status dialog. Summary line underneath.
+  * Grouped: "Pause for..." submenu (15 minutes, 1 hour) and a "Settings" submenu (start with Windows, start recording when
+    Hermes starts, on-screen dot, edit exclusions). Top level is down to nine entries.
+  * Plain wording: "Pause recording" / "Resume recording", "Open Hermes".
+  * Follows the Windows light/dark app theme (uxtheme ordinals 135/136; falls back to the light menu if unavailable).
+  * Per-monitor DPI awareness: the tray icon, the menu and the recording dot are drawn at the real display resolution
+    instead of being stretched (the old look was blurry on scaled displays). The recording dot scales with the display.
+  * Friendlier start-up notification text.
+- Repo README and the versioned-package workflow are now part of the project (previously separate files).
 
-Unchanged: Modern/Fluidity setting, zoomable ribbon and lanes, layout hardening, USB-removal lock, hidden clean-slate reset.
-Author tag NotShanav.
+Not changed (Windows owns them): the "Show hidden icons" flyout and the look of the notification balloon.
+
+Since v1.2.1: tray changes above only. App UI unchanged.
+Earlier features still present: Modern/Fluidity interface styles, liquid-glass UI, zoomable ribbon and lanes,
+USB-removal auto-lock, hidden clean-slate reset, author tag NotShanav.
 
 Naming: Hermes-v<major>.<minor>.<patch>.zip

@@ -20,14 +20,15 @@ use std::rc::Rc;
 use std::sync::atomic::{AtomicIsize, Ordering};
 use windows::core::{w, PCWSTR};
 use windows::Win32::Foundation::{HWND, LPARAM, LRESULT, POINT, TRUE, WPARAM};
-use windows::Win32::Graphics::Gdi::{CreateBitmap, CreateEllipticRgn, CreateSolidBrush, DeleteObject, InvalidateRect, SetWindowRgn, HBRUSH};
-use windows::Win32::System::LibraryLoader::GetModuleHandleW;
+use windows::Win32::Graphics::Gdi::{CreateBitmap, CreateDIBSection, CreateEllipticRgn, CreateSolidBrush, DeleteObject, InvalidateRect, SetWindowRgn, BITMAPINFO, BITMAPINFOHEADER, DIB_RGB_COLORS, HBITMAP, HBRUSH};
+use windows::Win32::System::LibraryLoader::{GetModuleHandleW, GetProcAddress, LoadLibraryW};
+use windows::Win32::UI::HiDpi::{GetDpiForSystem, SetProcessDpiAwarenessContext, DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2};
 use windows::Win32::UI::Shell::{ShellExecuteW, Shell_NotifyIconW, NIF_ICON, NIF_INFO, NIF_MESSAGE, NIF_TIP, NIM_ADD, NIM_DELETE, NIM_MODIFY, NIM_SETVERSION, NOTIFYICONDATAW, NOTIFYICON_VERSION_4};
 use windows::Win32::UI::WindowsAndMessaging::*;
 
 pub const WM_TRAY: u32 = WM_APP + 40;
 const TIMER_AUTO_RESUME: usize = 100;
-const DOT_SIZE: i32 = 12;
+const DOT_SIZE: i32 = 12; // at 100% scaling; multiplied by the display scale (see dot_px)
 const NIIF_INFO_: u32 = 1;
 
 static MAIN_HWND: AtomicIsize = AtomicIsize::new(0);
@@ -190,8 +191,9 @@ impl TrayUi {
             let class = w!("HermesRecordingDot");
             let wc = WNDCLASSW { lpfnWndProc: Some(dot_proc), hInstance: hinst.unwrap_or_default(), lpszClassName: class, hbrBackground: CreateSolidBrush(rgb(icon::RED)), ..Default::default() };
             RegisterClassW(&wc); // already-registered is fine
-            if let Ok(h) = CreateWindowExW(WS_EX_TOPMOST | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE, class, w!("Hermes is recording"), WS_POPUP, 0, 0, DOT_SIZE, DOT_SIZE, None, None, hinst, None) {
-                let rgn = CreateEllipticRgn(0, 0, DOT_SIZE + 1, DOT_SIZE + 1);
+            let px = dot_px();
+            if let Ok(h) = CreateWindowExW(WS_EX_TOPMOST | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE, class, w!("Hermes is recording"), WS_POPUP, 0, 0, px, px, None, None, hinst, None) {
+                let rgn = CreateEllipticRgn(0, 0, px + 1, px + 1);
                 SetWindowRgn(h, Some(rgn), true);
                 self.dot = Some(h);
                 self.position_dot();
@@ -202,8 +204,9 @@ impl TrayUi {
     fn position_dot(&self) {
         if let Some(h) = self.dot {
             unsafe {
-                let x = GetSystemMetrics(SM_CXSCREEN) - DOT_SIZE - 8;
-                let _ = SetWindowPos(h, Some(HWND_TOPMOST), x, 4, DOT_SIZE, DOT_SIZE, SWP_NOACTIVATE);
+                let px = dot_px();
+                let x = GetSystemMetrics(SM_CXSCREEN) - px - px * 8 / DOT_SIZE;
+                let _ = SetWindowPos(h, Some(HWND_TOPMOST), x, px * 4 / DOT_SIZE, px, px, SWP_NOACTIVATE);
             }
         }
     }
@@ -264,27 +267,18 @@ impl TrayUi {
         let items = menu::build(&input);
         unsafe {
             let Ok(hm) = CreatePopupMenu() else { return };
-            for Item { id, label, enabled, checked, separator } in &items {
-                if *separator {
-                    let _ = AppendMenuW(hm, MF_SEPARATOR, 0, PCWSTR::null());
-                } else {
-                    let mut flags = MF_STRING;
-                    if !enabled {
-                        flags |= MF_GRAYED;
-                    }
-                    if *checked {
-                        flags |= MF_CHECKED;
-                    }
-                    let l = wide(label);
-                    let _ = AppendMenuW(hm, flags, *id as usize, PCWSTR(l.as_ptr()));
-                }
-            }
+            let bmp_size = GetSystemMetrics(SM_CXSMICON).max(16);
+            let mut bitmaps: Vec<HBITMAP> = Vec::new();
+            append_items(hm, &items, bmp_size, &mut bitmaps);
             let mut pt = POINT::default();
             let _ = GetCursorPos(&mut pt);
             let _ = SetForegroundWindow(hwnd(self.hwnd)); // required so the menu closes when clicking elsewhere
             let cmd = TrackPopupMenu(hm, TPM_RETURNCMD | TPM_RIGHTBUTTON | TPM_BOTTOMALIGN, pt.x, pt.y, Some(0), hwnd(self.hwnd), None);
             let _ = PostMessageW(Some(hwnd(self.hwnd)), WM_NULL, WPARAM(0), LPARAM(0));
-            let _ = DestroyMenu(hm);
+            let _ = DestroyMenu(hm); // also destroys the submenus
+            for b in bitmaps {
+                let _ = DeleteObject(b.into());
+            }
             if cmd.0 > 0 {
                 self.command(cmd.0 as u32);
             }
@@ -341,7 +335,7 @@ impl TrayUi {
             },
             ids::PAUSE_15 => self.pause_for(15),
             ids::PAUSE_60 => self.pause_for(60),
-            ids::STATUS => {
+            ids::STATUS | ids::STATUS_HEADER => {
                 let st = menu::state_label(self.state);
                 let text = format_status(&self.status.borrow(), st, crate::autostart::is_enabled());
                 self.message_box(&text, "Hermes status and security", MB_ICONINFORMATION);
@@ -437,7 +431,7 @@ impl Ui for TrayUi {
         self.publish_live(state);
         if state == CollectionState::Recording && !self.announced {
             self.announced = true;
-            self.balloon("Hermes is recording", "Right-click the icon to pause, see status, or exit.");
+            self.balloon("Hermes is recording", "Your activity is being recorded and encrypted on this computer. Click the icon for controls.");
         } else if state == CollectionState::Recording && prev == CollectionState::Paused {
             self.balloon("Hermes resumed recording", "Recording is active again.");
         }
@@ -512,3 +506,83 @@ impl Ui for TrayUi {
 
 #[allow(dead_code)]
 fn _unused(_: HBRUSH) {}
+
+
+// ---------------------------------------------------------------- modern look: crisp, themed, grouped menu
+
+/// Call once, first thing in `main`, before any window exists. Makes the tray crisp on scaled displays (per-monitor
+/// DPI, so the icon, the menu and the dot are drawn at the real resolution instead of being stretched) and lets the
+/// popup menu follow the Windows light/dark app theme.
+pub fn init_process() {
+    unsafe {
+        let _ = SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+        enable_theme_aware_menus();
+    }
+}
+
+/// uxtheme.dll ordinals 135 (SetPreferredAppMode) and 136 (FlushMenuThemes): the same documented-by-use calls that
+/// Windows' own shell and most dark-mode-aware apps rely on. Failure is harmless: the menu simply stays light.
+unsafe fn enable_theme_aware_menus() {
+    use windows::core::PCSTR;
+    let Ok(lib) = LoadLibraryW(w!("uxtheme.dll")) else { return };
+    if let Some(f) = GetProcAddress(lib, PCSTR(135usize as *const u8)) {
+        let set_mode: unsafe extern "system" fn(i32) -> i32 = std::mem::transmute(f);
+        set_mode(1); // AllowDark: follow the system app theme
+    }
+    if let Some(f) = GetProcAddress(lib, PCSTR(136usize as *const u8)) {
+        let flush: unsafe extern "system" fn() = std::mem::transmute(f);
+        flush();
+    }
+}
+
+fn dot_px() -> i32 {
+    let dpi = unsafe { GetDpiForSystem() };
+    (DOT_SIZE as u32 * if dpi == 0 { 96 } else { dpi } / 96) as i32
+}
+
+/// A menu-sized copy of the tray icon artwork as a 32-bit premultiplied-alpha DIB (what menus need for a clean edge).
+unsafe fn menu_bitmap(kind: IconKind, size: i32) -> Option<HBITMAP> {
+    let px = icon::pixels(kind, size as u32);
+    let bmi = BITMAPINFO { bmiHeader: BITMAPINFOHEADER { biSize: std::mem::size_of::<BITMAPINFOHEADER>() as u32, biWidth: size, biHeight: -size, biPlanes: 1, biBitCount: 32, biCompression: 0, ..Default::default() }, ..Default::default() };
+    let mut bits: *mut c_void = std::ptr::null_mut();
+    let bmp = CreateDIBSection(None, &bmi, DIB_RGB_COLORS, &mut bits, None, 0).ok()?;
+    if bits.is_null() {
+        let _ = DeleteObject(bmp.into());
+        return None;
+    }
+    std::ptr::copy_nonoverlapping(px.as_ptr(), bits as *mut u8, px.len());
+    Some(bmp)
+}
+
+/// Builds the native menu from the data in `menu.rs`: separators, submenus, check marks and the status picture.
+unsafe fn append_items(hm: HMENU, items: &[Item], bmp_size: i32, bitmaps: &mut Vec<HBITMAP>) {
+    let mut pos: u32 = 0;
+    for it in items {
+        if it.separator {
+            let _ = AppendMenuW(hm, MF_SEPARATOR, 0, PCWSTR::null());
+        } else {
+            let mut flags = MF_STRING;
+            if !it.enabled {
+                flags |= MF_GRAYED;
+            }
+            if it.checked {
+                flags |= MF_CHECKED;
+            }
+            let label = wide(&it.label);
+            if it.children.is_empty() {
+                let _ = AppendMenuW(hm, flags, it.id as usize, PCWSTR(label.as_ptr()));
+            } else if let Ok(sub) = CreatePopupMenu() {
+                append_items(sub, &it.children, bmp_size, bitmaps);
+                let _ = AppendMenuW(hm, flags | MF_POPUP, sub.0 as usize, PCWSTR(label.as_ptr()));
+            }
+            if let Some(kind) = it.icon {
+                if let Some(bmp) = menu_bitmap(kind, bmp_size) {
+                    let mii = MENUITEMINFOW { cbSize: std::mem::size_of::<MENUITEMINFOW>() as u32, fMask: MIIM_BITMAP, hbmpItem: bmp, ..Default::default() };
+                    let _ = SetMenuItemInfoW(hm, pos, true, &mii);
+                    bitmaps.push(bmp);
+                }
+            }
+        }
+        pos += 1;
+    }
+}
